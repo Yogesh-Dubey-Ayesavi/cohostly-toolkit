@@ -4,6 +4,7 @@ import { handlePromote } from './commands/promote.js';
 import { handleRollback } from './commands/rollback.js';
 import { handleManifest } from './commands/manifest.js';
 import { handleBackup, handleBackups, handleRestore } from './commands/backup.js';
+import { installAuth, handleLogin, handleLogout, handleWhoami } from './auth.js';
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:8000';
 const PROXY_URL = process.env.PROXY_URL || 'http://127.0.0.1:8080';
@@ -11,6 +12,7 @@ const PROXY_URL = process.env.PROXY_URL || 'http://127.0.0.1:8080';
 export async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
+  installAuth(API_URL);
 
   if (!command) {
     printHelp();
@@ -18,6 +20,15 @@ export async function main() {
   }
 
   switch (command) {
+    case 'login':
+      await handleLogin(args.slice(1), API_URL);
+      break;
+    case 'logout':
+      handleLogout(API_URL);
+      break;
+    case 'whoami':
+      await handleWhoami(API_URL);
+      break;
     case 'deploy':
       await handleDeploy(args.slice(1), API_URL);
       break;
@@ -63,6 +74,8 @@ function printHelp() {
   console.log(`Usage: platform <command> [options]
 
 Commands:
+  login [--token plk_...]                                                          Sign in (opens your browser), or save a key made in the dashboard
+  logout / whoami                                                                  Forget the saved key / show who you are signed in as
   deploy [dir] [--project name] [--manifest file] [--set setting=value] [--show-settings]  Deploy an application
   manifest check [dir] [--manifest file] [--set setting=value]                     Show the effective settings and where each came from
   versions [--project name]                                                        List project versions
@@ -87,7 +100,7 @@ async function handleList() {
     const data = (await res.json()) as any;
     console.log('PROJECTS:');
     for (const p of data.projects || []) {
-      console.log(`- ${p.name} (current: v${p.current_version ?? 'none'}, created: ${p.created_at})`);
+      console.log(`- ${p.name} (current: v${p.current_version ?? 'none'}, ${p.visibility ?? ''}${p.role ? `, you are ${p.role}` : ''}${p.url ? `, ${p.url}` : ''})`);
     }
 
     try {
