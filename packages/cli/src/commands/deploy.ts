@@ -70,6 +70,9 @@ export async function handleDeploy(args: string[], apiUrl: string) {
     if (data.engine_notice) {
       console.log(`Notice: ${data.engine_notice}`);
     }
+    if (data.storage?.stateful) {
+      console.log(`Data:   ${data.storage.disk_gb} GB persistent disk, mounted at ${data.storage.data_path}. Your app keeps data by writing under ${data.storage.data_path}.`);
+    }
     if (data.warnings && data.warnings.length > 0) {
       for (const w of data.warnings) {
         console.warn(`Warning: ${w}`);

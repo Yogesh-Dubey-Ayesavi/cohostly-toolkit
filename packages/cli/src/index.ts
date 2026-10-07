@@ -2,6 +2,7 @@ import { handleDeploy } from './commands/deploy.js';
 import { handleVersions } from './commands/versions.js';
 import { handlePromote } from './commands/promote.js';
 import { handleRollback } from './commands/rollback.js';
+import { handleBackup, handleBackups, handleRestore } from './commands/backup.js';
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:8000';
 const PROXY_URL = process.env.PROXY_URL || 'http://127.0.0.1:8080';
@@ -28,6 +29,15 @@ export async function main() {
     case 'rollback':
       await handleRollback(args.slice(1), API_URL);
       break;
+    case 'backup':
+      await handleBackup(args.slice(1), API_URL);
+      break;
+    case 'backups':
+      await handleBackups(args.slice(1), API_URL);
+      break;
+    case 'restore':
+      await handleRestore(args.slice(1), API_URL);
+      break;
     case 'ls':
     case 'list':
       await handleList();
@@ -53,6 +63,9 @@ Commands:
   versions [--project name]                                                        List project versions
   promote <version> [--project name]                                               Promote version to current
   rollback [--project name]                                                        Rollback to previous ready version
+  backup <project> [--freeze] [--slot name]                                        Back up a stateful project's /data disk
+  backups <project>                                                                List backups
+  restore <project> <backup-id>                                                    Restore /data to a backup (the old disk is kept for a grace period)
   ls                                                                               List projects and instances
   stop <project>                                                                   Stop running instances of a project
   logs <project>                                                                   View logs (Phase 10)
