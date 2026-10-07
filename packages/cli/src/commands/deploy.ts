@@ -1,7 +1,10 @@
 import * as path from 'node:path';
 import * as fs from 'node:fs';
+import { takeSetFlags, printSettings } from './manifest.js';
 
-export async function handleDeploy(args: string[], apiUrl: string) {
+export async function handleDeploy(rawArgs: string[], apiUrl: string) {
+  const { rest: args, overrides } = takeSetFlags(rawArgs);
+  const showSettings = args.includes('--show-settings');
   let dir = '.';
   let engine = 'auto';
   let project = '';
@@ -17,6 +20,8 @@ export async function handleDeploy(args: string[], apiUrl: string) {
     } else if (args[i] === '--manifest' && args[i + 1]) {
       manifestPath = args[i + 1];
       i++;
+    } else if (args[i] === '--show-settings') {
+      // handled above
     } else if (!args[i].startsWith('--')) {
       dir = args[i];
     }
@@ -55,6 +60,7 @@ export async function handleDeploy(args: string[], apiUrl: string) {
         engine,
         manifest_path: fullManifestPath || undefined,
         manifest_content: manifestContent || undefined,
+        overrides: Object.keys(overrides).length ? overrides : undefined,
       }),
     });
 
@@ -68,6 +74,7 @@ export async function handleDeploy(args: string[], apiUrl: string) {
     console.log(`URL:    ${data.url}`);
     if (data.deduped) console.log(`Notice: ${data.notice}`);
     for (const n of data.notices ?? []) console.log(`Notice: ${n}`);
+    if ((data.no_manifest || showSettings) && data.settings) printSettings(data.settings, data.no_manifest ? 'Settings used (no manifest, so these are the defaults):' : 'Settings used:');
     if (data.warnings && data.warnings.length > 0) {
       for (const w of data.warnings) {
         console.warn(`Warning: ${w}`);

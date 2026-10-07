@@ -2,6 +2,7 @@ import { handleDeploy } from './commands/deploy.js';
 import { handleVersions } from './commands/versions.js';
 import { handlePromote } from './commands/promote.js';
 import { handleRollback } from './commands/rollback.js';
+import { handleManifest } from './commands/manifest.js';
 import { handleBackup, handleBackups, handleRestore } from './commands/backup.js';
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:8000';
@@ -38,6 +39,9 @@ export async function main() {
     case 'restore':
       await handleRestore(args.slice(1), API_URL);
       break;
+    case 'manifest':
+      await handleManifest(args.slice(1), API_URL);
+      break;
     case 'ls':
     case 'list':
       await handleList();
@@ -59,7 +63,8 @@ function printHelp() {
   console.log(`Usage: platform <command> [options]
 
 Commands:
-  deploy [dir] [--project name] [--manifest file]  Deploy an application
+  deploy [dir] [--project name] [--manifest file] [--set setting=value] [--show-settings]  Deploy an application
+  manifest check [dir] [--manifest file] [--set setting=value]                     Show the effective settings and where each came from
   versions [--project name]                                                        List project versions
   promote <version> [--project name]                                               Promote version to current
   rollback [--project name]                                                        Rollback to previous ready version
