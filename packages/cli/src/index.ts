@@ -63,9 +63,9 @@ Commands:
   versions [--project name]                                                        List project versions
   promote <version> [--project name]                                               Promote version to current
   rollback [--project name]                                                        Rollback to previous ready version
-  backup <project> [--freeze] [--slot name]                                        Back up a stateful project's /data disk
+  backup <project> [--stop | --dump] [--slot name]                                  Back up a stateful project's /data folder
   backups <project>                                                                List backups
-  restore <project> <backup-id>                                                    Restore /data to a backup (the old disk is kept for a grace period)
+  restore <project> <backup-id>                                                    Restore /data to a backup (your current data is saved first)
   ls                                                                               List projects and instances
   stop <project>                                                                   Stop running instances of a project
   logs <project>                                                                   View logs (Phase 10)

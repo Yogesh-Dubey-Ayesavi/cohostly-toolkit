@@ -31,7 +31,9 @@ export async function handleVersions(args: string[], apiUrl: string) {
 
     for (const v of data.versions) {
       const isCurrent = v.version === data.current_version ? ' (current)' : '';
-      console.log(`- v${v.version}${isCurrent}: status=${v.status}, engine=${v.engine_resolved}, start_mode=${v.start_mode || 'cold'}, created=${v.created_at}`);
+      let pause = 'memory';
+      try { pause = JSON.parse(v.artifact_json || '{}').pause_mode || 'memory'; } catch { /* a failed version has no artifact */ }
+      console.log(`- v${v.version}${isCurrent}: status=${v.status}, engine=${v.engine_resolved}, pause_mode=${pause}, created=${v.created_at}`);
       if (v.engine_notice) {
         console.log(`    notice: ${v.engine_notice}`);
       }
