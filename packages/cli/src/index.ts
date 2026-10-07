@@ -59,7 +59,7 @@ function printHelp() {
   console.log(`Usage: platform <command> [options]
 
 Commands:
-  deploy [dir] [--engine auto|unikraft|linux] [--project name] [--manifest file]  Deploy an application
+  deploy [dir] [--project name] [--manifest file]  Deploy an application
   versions [--project name]                                                        List project versions
   promote <version> [--project name]                                               Promote version to current
   rollback [--project name]                                                        Rollback to previous ready version
