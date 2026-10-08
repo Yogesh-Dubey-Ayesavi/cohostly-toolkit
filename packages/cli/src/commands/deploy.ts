@@ -1,6 +1,20 @@
 import * as path from 'node:path';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
+import { execFileSync } from 'node:child_process';
 import { takeSetFlags, printSettings } from './manifest.js';
+
+const MAX_UPLOAD = 50 * 1024 * 1024; // the API's upload limit
+
+/** Packs the folder into a .tar.gz (without node_modules, .git and similar) so the API can be on another machine. */
+function packFolder(dir: string): Buffer {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'platform-deploy-'));
+  const file = path.join(tmp, 'source.tar.gz');
+  try {
+    execFileSync('tar', ['-czf', file, '--exclude=node_modules', '--exclude=.git', '--exclude=.vercel', '--exclude=.next', '--exclude=__pycache__', '--exclude=.DS_Store', '-C', dir, '.'], { stdio: 'pipe' });
+    return fs.readFileSync(file);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+}
 
 export async function handleDeploy(rawArgs: string[], apiUrl: string) {
   const { rest: args, overrides } = takeSetFlags(rawArgs);
@@ -48,21 +62,22 @@ export async function handleDeploy(rawArgs: string[], apiUrl: string) {
     manifestContent = fs.readFileSync(fullManifestPath, 'utf-8');
   }
 
+  let archive: Buffer;
+  try { archive = packFolder(srcDir); } catch (e: any) { console.error(`Could not pack ${srcDir}: ${e.message}`); process.exit(1); }
+  if (archive.length > MAX_UPLOAD) {
+    console.error(`The folder is ${(archive.length / 1048576).toFixed(1)} MB after packing; the limit is 50 MB. Remove build output and large files (node_modules and .git are already left out).`);
+    process.exit(1);
+  }
+
   try {
-    const res = await fetch(`${apiUrl}/v1/deploy`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        project,
-        src_dir: srcDir,
-        engine,
-        manifest_path: fullManifestPath || undefined,
-        manifest_content: manifestContent || undefined,
-        overrides: Object.keys(overrides).length ? overrides : undefined,
-      }),
-    });
+    // The folder is uploaded: the API runs on another machine and cannot read this disk.
+    const form = new FormData();
+    form.set('project', project);
+    form.set('engine', engine);
+    if (manifestContent) form.set('manifest', manifestContent);
+    if (Object.keys(overrides).length) form.set('overrides', JSON.stringify(overrides));
+    form.set('tarball', new Blob([new Uint8Array(archive)]), 'source.tar.gz');
+    const res = await fetch(`${apiUrl}/v1/deploy`, { method: 'POST', body: form });
 
     const data = (await res.json()) as any;
     if (!res.ok) {
