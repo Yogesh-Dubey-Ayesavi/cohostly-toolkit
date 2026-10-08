@@ -3,6 +3,8 @@ import { handleVersions } from './commands/versions.js';
 import { handlePromote } from './commands/promote.js';
 import { handleRollback } from './commands/rollback.js';
 import { handleManifest } from './commands/manifest.js';
+import { handleOpen } from './commands/open.js';
+import { handleNew } from './commands/new.js';
 import { handleBackup, handleBackups, handleRestore } from './commands/backup.js';
 import { installAuth, handleLogin, handleLogout, handleWhoami } from './auth.js';
 
@@ -31,6 +33,12 @@ export async function main() {
       break;
     case 'deploy':
       await handleDeploy(args.slice(1), API_URL);
+      break;
+    case 'open':
+      await handleOpen(args.slice(1), API_URL);
+      break;
+    case 'new':
+      handleNew(args.slice(1));
       break;
     case 'versions':
       await handleVersions(args.slice(1), API_URL);
@@ -76,7 +84,9 @@ function printHelp() {
 Commands:
   login [--token plk_...]                                                          Sign in (opens your browser), or save a key made in the dashboard
   logout / whoami                                                                  Forget the saved key / show who you are signed in as
-  deploy [dir] [--project name] [--manifest file] [--set setting=value] [--show-settings]  Deploy an application
+  deploy [dir] [--project name] [--manifest file] [--set setting=value] [--yes]    Deploy an application. With no manifest, at a terminal it shows the settings it worked out and asks first; --yes accepts them without asking (scripts without --yes keep the standard settings)
+  new <template> [folder]                                                          Start a small project (static, flask, fastapi, express, go, nextjs) you can deploy as is
+  open [project]                                                                   Open the project's web address in your browser
   manifest check [dir] [--manifest file] [--set setting=value]                     Show the effective settings and where each came from
   versions [--project name]                                                        List project versions
   promote <version> [--project name]                                               Promote version to current
