@@ -27,6 +27,7 @@ async function postDeploy(apiUrl: string, fields: Record<string, string>, archiv
   // The folder is uploaded: the API runs on another machine and cannot read this disk.
   form.set('tarball', new Blob([new Uint8Array(archive)]), 'source.tar.gz');
   const res = await fetch(`${apiUrl}/v1/deploy`, { method: 'POST', body: form, headers: { accept: 'application/x-ndjson' } });
+  if (res.status === 413) return { http: 413, last: { stage: 'failed', error: 'The server refused the upload because it is too large (about 30 MB is the most it accepts in one request). Leave out build output, large data files and dependency folders (node_modules and .git are already left out), then deploy again.' } };
   const type = res.headers.get('content-type') ?? '';
   if (!type.includes('ndjson')) { const data = (await res.json().catch(() => ({}))) as any; return { http: res.status, last: res.ok ? { stage: 'live', ...data } : { stage: 'failed', status: res.status, ...data } }; }
   let last: any; let buf = ''; let lastStage = ''; let lastLog = '';
@@ -133,7 +134,7 @@ export async function handleDeploy(rawArgs: string[], apiUrl: string) {
   let archive: Buffer;
   try { archive = packFolder(srcDir); } catch (e: any) { console.error(`Could not pack ${srcDir}: ${e.message}`); process.exit(1); }
   if (archive.length > MAX_UPLOAD) {
-    console.error(`The folder is ${(archive.length / 1048576).toFixed(1)} MB after packing; the limit is 50 MB. Remove build output and large files (node_modules and .git are already left out).`);
+    console.error(`The folder is ${(archive.length / 1048576).toFixed(1)} MB after packing; the limit is 50 MB (a hosted platform may accept less). Remove build output and large files (node_modules and .git are already left out).`);
     process.exit(1);
   }
 
