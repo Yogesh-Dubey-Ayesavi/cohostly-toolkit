@@ -48,9 +48,18 @@ async function postDeploy(apiUrl: string, fields: Record<string, string>, archiv
 }
 const label = (s: string) => ({ uploading: '[1/4] Uploading', building: '[2/4] Building', starting: '[3/4] Starting', live: '[4/4] Live' } as Record<string, string>)[s] ?? s;
 
-function printDraft(d: { fields: DraftField[]; warnings: string[]; detection: any; model: any }) {
+function printChanges(c: any) {
+  if (!c) return;
+  console.log(`\nSince version v${c.previous_version}: ${c.diff.summary}`);
+  for (const f of [...c.diff.added.map((x: string) => `+ ${x}`), ...c.diff.removed.map((x: string) => `- ${x}`), ...c.diff.modified.map((x: string) => `~ ${x}`)].slice(0, 12)) console.log(`    ${f}`);
+  for (const i of c.impacts ?? []) console.log(`  ${i.kind === 'info' ? 'note' : 'may affect'} ${i.field}: ${i.reason}`);
+}
+
+function printDraft(d: { fields: DraftField[]; warnings: string[]; detection: any; model: any; changes?: any }, message?: string) {
   const det = d.detection;
-  console.log(`\nThis looks like a ${det.framework ? det.framework + ' ' : ''}${det.language} app. There is no manifest, so here are the settings worked out from your code:\n`);
+  console.log(message ? `\n${message}\n` : `\nThis looks like a ${det.framework ? det.framework + ' ' : ''}${det.language} app. There is no manifest, so here are the settings worked out from your code:\n`);
+  printChanges(d.changes);
+  console.log('');
   for (const f of d.fields) {
     const v = typeof f.value === 'string' ? f.value : JSON.stringify(f.value);
     console.log(`  ${f.path.padEnd(22)} ${v.padEnd(34)} ${f.in_manifest ? '' : '(standard) '}[${f.confidence}]`);
@@ -140,7 +149,7 @@ export async function handleDeploy(rawArgs: string[], apiUrl: string) {
 
     if (r.last?.stage === 'needs_confirmation') {
       const d = r.last;
-      printDraft(d.draft);
+      printDraft(d.draft, d.draft.changes ? d.message : undefined);
       if (!process.stdin.isTTY) {
         console.error('\nNothing was deployed. Run again with --yes to accept these settings, or save them as manifest.json and pass --manifest.');
         process.exit(2);
@@ -168,6 +177,7 @@ export async function handleDeploy(rawArgs: string[], apiUrl: string) {
     console.log(`\nDeployed project: ${data.project} (version v${data.version})`);
     console.log(`URL:    ${data.url}`);
     if (data.deduped) console.log(`Notice: ${data.notice}`);
+    printChanges(data.changes);
     for (const n of data.notices ?? []) console.log(`Notice: ${n}`);
     if ((data.no_manifest || showSettings) && data.settings) printSettings(data.settings, data.no_manifest ? 'Settings used (no manifest, so these are the defaults):' : 'Settings used:');
     if (data.warnings && data.warnings.length > 0) {
