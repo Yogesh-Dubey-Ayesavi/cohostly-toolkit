@@ -6,6 +6,11 @@ import { handleManifest } from './commands/manifest.js';
 import { handleOpen } from './commands/open.js';
 import { handleNew } from './commands/new.js';
 import { handleBackup, handleBackups, handleRestore } from './commands/backup.js';
+import { handleDev } from './commands/dev.js';
+import { handleTypes } from './commands/types.js';
+import { handleSecrets } from './commands/secrets.js';
+import { handleBindings } from './commands/bindings.js';
+import { handleToken } from './commands/tokens.js';
 import { installAuth, handleLogin, handleLogout, handleWhoami } from './auth.js';
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:8000';
@@ -61,6 +66,21 @@ export async function main() {
     case 'manifest':
       await handleManifest(args.slice(1), API_URL);
       break;
+    case 'dev':
+      await handleDev(args.slice(1), API_URL);
+      break;
+    case 'secrets':
+      await handleSecrets(args.slice(1), API_URL);
+      break;
+    case 'bindings':
+      await handleBindings(args.slice(1), API_URL);
+      break;
+    case 'types':
+      await handleTypes(args.slice(1), API_URL);
+      break;
+    case 'token':
+      await handleToken(args.slice(1), API_URL);
+      break;
     case 'ls':
     case 'list':
       await handleList();
@@ -94,6 +114,11 @@ Commands:
   backup <project> [--stop | --dump] [--slot name]                                  Back up a stateful project's /data folder
   backups <project>                                                                List backups
   restore <project> <backup-id>                                                    Restore /data to a backup (your current data is saved first)
+  dev --project <name> [--no-secrets] [--env-file f] -- <command>                 Run a command here with a dev token, the platform's service addresses and the project's secrets (nothing is written to disk)
+  secrets <list | set NAME | import --file .env | delete NAME | share NAME | request NAME> --project <name>   Manage secrets. A value is typed at a hidden prompt or piped in, never given as an argument
+  bindings check <project>                                                         Which platform services the project uses, when each was last used, and any misuse signal
+  types --project <name> [--check] [--out dir] [--lang python]                                   Write platform.gen.ts, the typed platform object for the bindings the project declared
+  token create --dev | list | revoke <id> --project <name>                         Make (shown once), list or end dev tokens
   ls                                                                               List projects and instances
   stop <project>                                                                   Stop running instances of a project
   logs <project>                                                                   View logs (Phase 10)

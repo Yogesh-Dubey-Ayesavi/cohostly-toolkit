@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { spawnSync } from 'node:child_process';
 import * as readline from 'node:readline/promises';
 import { takeSetFlags, printSettings } from './manifest.js';
+import { staleTypesMessage } from './types.js';
 
 const MAX_UPLOAD = 50 * 1024 * 1024; // the API's upload limit
 
@@ -13,7 +14,7 @@ function packFolder(dir: string): Buffer {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'platform-deploy-'));
   const file = path.join(tmp, 'source.tar.gz');
   try {
-    execFileSync('tar', ['-czf', file, '--exclude=node_modules', '--exclude=.git', '--exclude=.vercel', '--exclude=.next', '--exclude=__pycache__', '--exclude=.DS_Store', '-C', dir, '.'], { stdio: 'pipe' });
+    execFileSync('tar', ['-czf', file, '--exclude=node_modules', '--exclude=.git', '--exclude=.vercel', '--exclude=.next', '--exclude=__pycache__', '--exclude=.DS_Store', '--exclude=._*', '-C', dir, '.'], { stdio: 'pipe', env: { ...process.env, COPYFILE_DISABLE: '1' } });
     return fs.readFileSync(file);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 }
@@ -129,6 +130,12 @@ export async function handleDeploy(rawArgs: string[], apiUrl: string) {
       process.exit(1);
     }
     manifestContent = fs.readFileSync(full, 'utf-8');
+  }
+
+  // A project that keeps platform.gen.ts is held to it: code written against old types is not deployed.
+  if (!args.includes('--skip-types-check')) {
+    const stale = await staleTypesMessage(apiUrl, srcDir, manifestContent || undefined);
+    if (stale) { console.error(stale); process.exit(1); }
   }
 
   let archive: Buffer;
