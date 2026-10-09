@@ -85,3 +85,30 @@ export const CONTEXT_FIELD_HEADERS: Record<string, string> = {
   "device.browser": "X-Platform-Device-Browser",
   "device.os": "X-Platform-Device-Os",
 }
+
+/** Which preset reveals each field, so a project's typed context can leave out what its manifest never sends. */
+export const CONTEXT_FIELD_INFO: readonly { id: string; fromPreset: 'none' | 'basic' | 'friendly' | 'full'; always: boolean; list: boolean; who: readonly string[]; label: string }[] = [
+  { id: "request.id", fromPreset: "none", always: true, list: false, who: ["person", "machine", "anonymous", "platform"], label: "A unique ID for this request. It is also in the platform's logs." },
+  { id: "request.time", fromPreset: "none", always: true, list: false, who: ["person", "machine", "anonymous", "platform"], label: "When the platform received the request, in UTC." },
+  { id: "request.protocol", fromPreset: "none", always: true, list: false, who: ["person", "machine", "anonymous", "platform"], label: "http, websocket or sse." },
+  { id: "caller.kind", fromPreset: "none", always: true, list: false, who: ["person", "machine", "anonymous", "platform"], label: "Whether the caller is a person, a machine, an anonymous visitor or the platform itself." },
+  { id: "caller.id", fromPreset: "none", always: true, list: false, who: ["person", "machine"], label: "A stable opaque ID for the person or the access key." },
+  { id: "caller.label", fromPreset: "none", always: true, list: false, who: ["machine", "platform"], label: "A readable label, such as the access key's name or \"approvals\" for the platform." },
+  { id: "caller.client", fromPreset: "none", always: true, list: false, who: ["person"], label: "The app a person connected through, such as Claude. Only present for people who signed in through an MCP client." },
+  { id: "caller.name", fromPreset: "friendly", always: false, list: false, who: ["person"], label: "The person's display name." },
+  { id: "caller.email", fromPreset: "full", always: false, list: false, who: ["person"], label: "The person's email address." },
+  { id: "caller.avatar_url", fromPreset: "friendly", always: false, list: false, who: ["person"], label: "A link to the person's profile image." },
+  { id: "access.how", fromPreset: "none", always: true, list: false, who: ["person", "machine", "anonymous", "platform"], label: "Why the caller is allowed in. collaborator, account, link, public, key or platform." },
+  { id: "access.role", fromPreset: "none", always: true, list: false, who: ["person", "machine"], label: "The caller's role on this tool. viewer, editor, admin, owner or machine." },
+  { id: "access.account_id", fromPreset: "none", always: true, list: false, who: ["person"], label: "The account that owns the tool, when the person belongs to it." },
+  { id: "access.account_role", fromPreset: "none", always: true, list: false, who: ["person"], label: "The person's role in the owning account (owner, admin or member)." },
+  { id: "access.scopes", fromPreset: "none", always: true, list: true, who: ["machine"], label: "What the access key is allowed to do." },
+  { id: "place.country", fromPreset: "basic", always: false, list: false, who: ["person", "machine", "anonymous", "platform"], label: "The country the request came from, from the network address. Best effort." },
+  { id: "place.city", fromPreset: "full", always: false, list: false, who: ["person", "machine"], label: "The city the request came from. People must agree. A machine's city is sent only when the owner lists it." },
+  { id: "place.time_zone", fromPreset: "basic", always: false, list: false, who: ["person", "machine", "anonymous", "platform"], label: "A time zone such as Asia/Kolkata. The person's own setting when known, otherwise derived from the location." },
+  { id: "place.utc_offset", fromPreset: "basic", always: false, list: false, who: ["person", "machine", "anonymous", "platform"], label: "The offset from UTC right now in that time zone." },
+  { id: "place.locale", fromPreset: "basic", always: false, list: false, who: ["person", "machine", "anonymous", "platform"], label: "The preferred language, such as en-IN." },
+  { id: "device.type", fromPreset: "basic", always: false, list: false, who: ["person", "machine", "anonymous", "platform"], label: "mobile, desktop, tablet, bot, cli, library or unknown. A hint only, never proof." },
+  { id: "device.browser", fromPreset: "basic", always: false, list: false, who: ["person", "machine", "anonymous", "platform"], label: "The browser family, such as Chrome. Never a full version." },
+  { id: "device.os", fromPreset: "basic", always: false, list: false, who: ["person", "machine", "anonymous", "platform"], label: "The operating system family, such as Android." },
+]

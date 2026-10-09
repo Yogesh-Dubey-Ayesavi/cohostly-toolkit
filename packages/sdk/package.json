@@ -11,10 +11,13 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "node --test dist/context.test.js"
+    "test": "node --test dist/context.test.js dist/platform.test.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.5.0"
+  },
+  "bin": {
+    "cohostly-sdk": "./dist/cli.js"
   }
 }
