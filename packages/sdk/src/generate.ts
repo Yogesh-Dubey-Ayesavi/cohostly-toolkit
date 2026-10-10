@@ -79,6 +79,7 @@ function methodsOf(doc: OpenApiDoc, keyed: boolean): Method[] {
   const out: Method[] = []
   for (const [p, item] of Object.entries(doc.paths ?? {})) {
     for (const [m, op] of Object.entries<any>(item)) {
+      if (op['x-sdk'] === false) continue // the stock provider endpoints are for provider SDKs, not the typed client
       const params = (op.parameters ?? []).filter((x: any) => x.in === 'path' && !(keyed && x.name === 'name'))
       const hasBody = !!op.requestBody
       const args: string[] = []

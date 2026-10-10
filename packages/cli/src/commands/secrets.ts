@@ -7,7 +7,7 @@ const fail = (msg: string): never => { console.error(msg); process.exit(1); };
 const flag = (a: string[], n: string) => { const i = a.indexOf(n); return i >= 0 ? a[i + 1] : undefined; };
 const enc = encodeURIComponent;
 
-async function readValue(name: string): Promise<string> {
+export async function readValue(name: string): Promise<string> {
   if (!process.stdin.isTTY) { let t = ''; for await (const c of process.stdin) t += c; return t.replace(/\r?\n$/, ''); }
   process.stderr.write(`Value for ${name} (hidden): `);
   return new Promise((resolve) => {

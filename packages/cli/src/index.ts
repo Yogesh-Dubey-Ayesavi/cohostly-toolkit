@@ -10,6 +10,8 @@ import { handleDev } from './commands/dev.js';
 import { handleTypes } from './commands/types.js';
 import { handleSecrets } from './commands/secrets.js';
 import { handleBindings } from './commands/bindings.js';
+import { handleCost } from './commands/cost.js';
+import { handleAiKeys } from './commands/aikeys.js';
 import { handleToken } from './commands/tokens.js';
 import { installAuth, handleLogin, handleLogout, handleWhoami } from './auth.js';
 
@@ -75,6 +77,12 @@ export async function main() {
     case 'bindings':
       await handleBindings(args.slice(1), API_URL);
       break;
+    case 'ai-keys':
+      await handleAiKeys(args.slice(1), API_URL);
+      break;
+    case 'cost':
+      await handleCost(args.slice(1), API_URL);
+      break;
     case 'types':
       await handleTypes(args.slice(1), API_URL);
       break;
@@ -117,6 +125,8 @@ Commands:
   dev --project <name> [--no-secrets] [--env-file f] -- <command>                 Run a command here with a dev token, the platform's service addresses and the project's secrets (nothing is written to disk)
   secrets <list | set NAME | import --file .env | delete NAME | share NAME | request NAME> --project <name>   Manage secrets. A value is typed at a hidden prompt or piped in, never given as an argument
   bindings check <project>                                                         Which platform services the project uses, when each was last used, and any misuse signal
+  ai-keys [list | set <provider> | check <provider> | delete <provider>] [--account id]  The provider keys your account brings for models the platform does not provide (typed hidden, never shown again)
+  cost [--project name] [--terms] [--json]                                               What AI and hosting cost, in plain sentences (estimates, with their assumptions)
   types --project <name> [--check] [--out dir] [--lang python]                                   Write platform.gen.ts, the typed platform object for the bindings the project declared
   token create --dev | list | revoke <id> --project <name>                         Make (shown once), list or end dev tokens
   ls                                                                               List projects and instances
