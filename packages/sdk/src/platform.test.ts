@@ -9,10 +9,10 @@ import { generateProject, checkGenerated, tsType, type OpenApiDoc } from './gene
 import { runTypes } from './types-command.js';
 
 const routes: Routes = {
-  approvals: { methods: { request: { method: 'post', path: '/approvals/request', stateChanging: true, hasBody: true }, get: { method: 'get', path: '/approvals/{id}', pathParams: ['id'] } } },
+  widgets: { methods: { request: { method: 'post', path: '/widgets/request', stateChanging: true, hasBody: true }, get: { method: 'get', path: '/widgets/{id}', pathParams: ['id'] } } },
   connections: { keys: ['sheet'], methods: { call: { method: 'post', path: '/connections/{name}/{action}', stateChanging: true, pathParams: ['action'], hasBody: true } } },
 };
-const env = { PLATFORM_TOKEN: 'tok', PLATFORM_BINDINGS: JSON.stringify({ approvals: { url: 'https://gw.test/approvals' } }) };
+const env = { PLATFORM_TOKEN: 'tok', PLATFORM_BINDINGS: JSON.stringify({ widgets: { url: 'https://gw.test/widgets' } }) };
 const ok = (body: unknown, headers: Record<string, string> = {}) => new Response(JSON.stringify(body), { status: 200, headers });
 const err = (status: number, code: string, headers: Record<string, string> = {}) => new Response(JSON.stringify({ error: { code, message: `m-${code}`, how_to_fix: `fix-${code}` } }), { status, headers });
 
@@ -20,9 +20,9 @@ describe('the platform runtime', () => {
   test('sends the token, a request id and the body to the binding address; fills path parameters', async () => {
     const seen: { url: string; init: RequestInit }[] = [];
     const p: any = createPlatform(routes, { env, fetch: (async (u: string, i: RequestInit) => { seen.push({ url: u, init: i }); return ok({ id: 'a1', status: 'pending' }); }) as any });
-    assert.deepEqual(await p.approvals.request({ title: 'x' }), { id: 'a1', status: 'pending' });
-    await p.approvals.get({ id: 'a b' });
-    assert.equal(seen[0].url, 'https://gw.test/approvals/request'); assert.equal(seen[1].url, 'https://gw.test/approvals/a%20b');
+    assert.deepEqual(await p.widgets.request({ title: 'x' }), { id: 'a1', status: 'pending' });
+    await p.widgets.get({ id: 'a b' });
+    assert.equal(seen[0].url, 'https://gw.test/widgets/request'); assert.equal(seen[1].url, 'https://gw.test/widgets/a%20b');
     const h = seen[0].init.headers as Record<string, string>;
     assert.equal(h['x-platform-binding-token'], 'tok'); assert.ok(h['x-request-id']); assert.ok(h['idempotency-key']);
     assert.equal((seen[1].init.headers as Record<string, string>)['idempotency-key'], undefined); // a read needs none
@@ -39,41 +39,41 @@ describe('the platform runtime', () => {
 
   test('errors carry the platform code, a plain message and how to fix it', async () => {
     const p: any = createPlatform(routes, { env, retries: 0, fetch: (async () => err(403, 'binding_not_declared', { 'x-request-id': 'rid-1' })) as any });
-    await assert.rejects(p.approvals.get({ id: '1' }), (e: PlatformError) => e instanceof PlatformError && e.status === 403 && e.code === 'binding_not_declared' && e.howToFix === 'fix-binding_not_declared' && e.requestId === 'rid-1');
+    await assert.rejects(p.widgets.get({ id: '1' }), (e: PlatformError) => e instanceof PlatformError && e.status === 403 && e.code === 'binding_not_declared' && e.howToFix === 'fix-binding_not_declared' && e.requestId === 'rid-1');
   });
 
   test('a busy platform is retried with the same idempotency key, then succeeds', async () => {
     const keys: string[] = []; let n = 0;
     const p: any = createPlatform(routes, { env, retries: 2, fetch: (async (_u: string, i: RequestInit) => { keys.push((i.headers as any)['idempotency-key']); return ++n < 3 ? err(503, 'unavailable', { 'retry-after': '0' }) : ok({ id: 'z' }); }) as any });
-    assert.deepEqual(await p.approvals.request({ title: 't' }), { id: 'z' });
+    assert.deepEqual(await p.widgets.request({ title: 't' }), { id: 'z' });
     assert.equal(n, 3); assert.equal(new Set(keys).size, 1);
   });
 
   test('a 4xx answer is not retried', async () => {
     let n = 0;
     const p: any = createPlatform(routes, { env, retries: 2, fetch: (async () => { n++; return err(400, 'invalid_request'); }) as any });
-    await assert.rejects(p.approvals.request({ title: 1 }));
+    await assert.rejects(p.widgets.request({ title: 1 }));
     assert.equal(n, 1);
   });
 
   test('a network failure is retried and then reported as network_error', async () => {
     let n = 0;
     const p: any = createPlatform(routes, { env, retries: 1, fetch: (async () => { n++; throw new Error('boom'); }) as any });
-    await assert.rejects(p.approvals.get({ id: '1' }), (e: PlatformError) => e.code === 'network_error');
+    await assert.rejects(p.widgets.get({ id: '1' }), (e: PlatformError) => e.code === 'network_error');
     assert.equal(n, 2);
   });
 
   test('without a token it says how to get one, before any request', async () => {
     let n = 0;
     const p: any = createPlatform(routes, { env: { PLATFORM_BINDINGS: env.PLATFORM_BINDINGS }, fetch: (async () => { n++; return ok({}); }) as any });
-    await assert.rejects(p.approvals.get({ id: '1' }), (e: PlatformError) => e.code === 'not_configured' && /platform dev/.test(e.howToFix));
+    await assert.rejects(p.widgets.get({ id: '1' }), (e: PlatformError) => e.code === 'not_configured' && /platform dev/.test(e.howToFix));
     assert.equal(n, 0);
   });
 
   test('a call that times out is reported, not left hanging', async () => {
     const keepAlive = setTimeout(() => {}, 500); // AbortSignal.timeout's own timer does not hold the process open
     const p: any = createPlatform(routes, { env, retries: 0, timeoutMs: 20, fetch: ((_u: string, i: RequestInit) => new Promise((_r, rej) => i.signal!.addEventListener('abort', () => rej(new Error('aborted'))))) as any });
-    await assert.rejects(p.approvals.get({ id: '1' }), (e: PlatformError) => e.code === 'network_error').finally(() => clearTimeout(keepAlive));
+    await assert.rejects(p.widgets.get({ id: '1' }), (e: PlatformError) => e.code === 'network_error').finally(() => clearTimeout(keepAlive));
   });
 });
 

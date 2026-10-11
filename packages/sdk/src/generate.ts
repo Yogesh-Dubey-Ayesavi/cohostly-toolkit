@@ -175,7 +175,7 @@ export function generateProject(docs: OpenApiDoc[], map: BindingsMap = {}, conte
     const ms = methodsOf(doc, !!b.keyed)
     routes[b.name] = { ...(keys ? { keys } : {}), methods: Object.fromEntries(ms.map((m) => [m.name, m.route])) }
     const iface = `{\n${ms.map((m) => `    /** ${m.doc} */\n    ${m.name}${m.sig};`).join('\n')}\n  }`
-    members.push(keys ? `  ${b.namespace}: {\n${keys.map((k) => `    ${ident(k)}: ${iface.replace(/\n/g, '\n  ')};`).join('\n')}\n  };` : `  ${b.namespace}: ${iface};`)
+    members.push(b.name === 'approvals' ? '  approvals: ApprovalsApi;' : keys ? `  ${b.namespace}: {\n${keys.map((k) => `    ${ident(k)}: ${iface.replace(/\n/g, '\n  ')};`).join('\n')}\n  };` : `  ${b.namespace}: ${iface};`)
 
     md.push(`## platform.${b.namespace}`, '', doc.info.description ?? '', '')
     for (const m of ms) md.push(`- \`platform.${b.namespace}.${keys ? `<${keys.join(' | ')}>.` : ''}${m.name}${m.sig.replace(/: Promise<.*>$/s, '')}\`: ${m.doc}`)
@@ -189,7 +189,7 @@ export function generateProject(docs: OpenApiDoc[], map: BindingsMap = {}, conte
   md.push(ctx.summary)
   const hookBindings = Object.keys(hooks)
   const hooksTs = hookBindings.length ? `\n\n/** What the platform calls in to. Give a binding's handlers all together: leaving one out does not compile. */\nexport interface Handlers {\n${hookBindings.map((b) => `  ${b}?: {\n${hooks[b].map((h) => `    /** ${h.doc} */\n    ${h.name}(payload: ${h.body}, ctx: Context): void | Promise<void>;`).join('\n')}\n  };`).join('\n')}\n}\n\n/** Mount the handlers in your server: \`app.use(mountHandlers({ approvals: { decision } }).express)\`. Anything that is not a platform hook falls through to your own routes. */\nexport const mountHandlers = (handlers: Handlers) => mountHooks(handlers as never, ${JSON.stringify(Object.fromEntries(hookBindings.map((b) => [b, hooks[b].map((h) => h.name)])))});` : ''
-  const core = `import { createPlatform, context as verifiedContext, mountHandlers as mountHooks, type Routes } from '@cohostly/sdk';\n\n${hasData ? TABLE_HELPERS + '\n\n' : ''}export const routes = ${JSON.stringify(routes, null, 2)} as const satisfies Routes;\n\n${schemaDecls.join('\n\n')}\n\n${ctx.ts}\n\nexport interface Platform {\n${members.join('\n')}\n  context: typeof context;\n}\n\n/** Only the bindings declared in the manifest exist here. */\nexport const platform: Platform = Object.assign(createPlatform<Omit<Platform, 'context'>>(routes as unknown as Routes), { context });\nexport default platform;${hooksTs}\n`
+  const core = `import { createPlatform, context as verifiedContext, mountHandlers as mountHooks, type Routes${sorted.some((d) => d.info['x-binding'].name === 'approvals') ? ', type ApprovalsApi' : ''} } from '@cohostly/sdk';\n\n${hasData ? TABLE_HELPERS + '\n\n' : ''}export const routes = ${JSON.stringify(routes, null, 2)} as const satisfies Routes;\n\n${schemaDecls.join('\n\n')}\n\n${ctx.ts}\n\nexport interface Platform {\n${members.join('\n')}\n  context: typeof context;\n}\n\n/** Only the bindings declared in the manifest exist here. */\nexport const platform: Platform = Object.assign(createPlatform<Omit<Platform, 'context'>>(routes as unknown as Routes), { context });\nexport default platform;${hooksTs}\n`
   const fingerprint = createHash('sha256').update(core).digest('hex').slice(0, 16)
   return { declared: sorted.map((d) => d.info['x-binding'].name), ts: HEADER(fingerprint) + core, markdown: md.join('\n'), fingerprint }
 }

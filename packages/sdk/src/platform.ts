@@ -3,6 +3,7 @@
 // so an app (or an AI assistant writing one) never writes HTTP by hand. Underneath it is plain HTTP to the binding's address.
 import { randomUUID } from 'node:crypto'
 import { bindingHeaders } from './context.js'
+import { approvalsHelper } from './approvals.js'
 
 /** One callable method: where it goes and how its arguments map onto the request. */
 export interface Route {
@@ -72,7 +73,7 @@ async function call(o: Required<Pick<PlatformOptions, 'timeoutMs' | 'retries'>> 
   const requestId = randomUUID()
   const headers: Record<string, string> = { 'x-platform-binding-token': token, 'x-request-id': requestId, accept: 'application/json', ...bindingHeaders(), ...extra }
   if (body !== undefined) headers['content-type'] = 'application/json'
-  if (route.stateChanging) headers['idempotency-key'] = randomUUID() // one key for every attempt of this call
+  if (route.stateChanging && !headers['idempotency-key']) headers['idempotency-key'] = randomUUID() // one key for every attempt of this call (the caller may bring its own)
   const safeToRepeat = route.method === 'get' || !!route.stateChanging
 
   let last: PlatformError | undefined
@@ -124,7 +125,14 @@ export function createPlatform<T>(routes: Routes, options: PlatformOptions = {})
       continue
     }
     const make = (fill: Record<string, string>) => Object.fromEntries(Object.entries(b.methods).map(([m, r]) => [m, methodFor(opts, r, fill)]))
-    out[name] = b.keys ? Object.fromEntries(b.keys.map((k) => [k, make({ name: k })])) : make({})
+    const methods = b.keys ? undefined : make({})
+    if (name === 'approvals' && methods && b.methods.request) {
+      // The request/wait/callback helper sits on the generated methods. Its request call can carry the caller's own Idempotency-Key.
+      const reqRoute = b.methods.request
+      out[name] = { ...methods, ...approvalsHelper(methods as never, (body, key) => call(opts, reqRoute, reqRoute.path, body, key ? { 'idempotency-key': key } : {}) as never) }
+      continue
+    }
+    out[name] = b.keys ? Object.fromEntries(b.keys.map((k) => [k, make({ name: k })])) : methods
   }
   return out as T
 }
