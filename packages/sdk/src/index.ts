@@ -6,3 +6,4 @@ export { fetchContract, fetchDocs, runTypes, type TypesOptions } from './types-c
 export { generatePython } from './generate-python.js'
 export { mountHandlers, HOOK_PREFIX, type HookTable, type MountOptions } from './handlers.js'
 export { approvalsHelper, verifyDecisionSignature, type ApprovalsApi, type ApprovalHandle, type ApprovalRecord, type ApprovalDecision, type ApprovalRequestInput, type DecisionHandler, type WaitOptions, type CallbackHandler, type CallbackOptions, type ApprovalStatus } from './approvals.js'
+export { logger, requestId, type RequestLogger } from './log.js'

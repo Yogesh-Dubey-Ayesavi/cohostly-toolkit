@@ -13,6 +13,7 @@ import { handleBindings } from './commands/bindings.js';
 import { handleCost } from './commands/cost.js';
 import { handleAiKeys } from './commands/aikeys.js';
 import { handleToken } from './commands/tokens.js';
+import { handleLogs } from './commands/logs.js';
 import { installAuth, handleLogin, handleLogout, handleWhoami } from './auth.js';
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:8000';
@@ -46,6 +47,9 @@ export async function main() {
       break;
     case 'new':
       handleNew(args.slice(1));
+      break;
+    case 'logs':
+      await handleLogs(args.slice(1), API_URL);
       break;
     case 'versions':
       await handleVersions(args.slice(1), API_URL);
@@ -96,9 +100,6 @@ export async function main() {
     case 'stop':
       await handleStop(args.slice(1));
       break;
-    case 'logs':
-      await handleLogs(args.slice(1));
-      break;
     default:
       console.error(`Unknown command: ${command}`);
       printHelp();
@@ -116,6 +117,7 @@ Commands:
   new <template> [folder]                                                          Start a small project (static, flask, fastapi, express, go, nextjs) you can deploy as is
   open [project]                                                                   Open the project's web address in your browser
   manifest check [dir] [--manifest file] [--set setting=value]                     Show the effective settings and where each came from
+  logs <project> [-f] [--version N] [--lines N] [--json]                           Show the app's recent output; -f keeps listening for new lines (owners and editors)
   versions [--project name]                                                        List project versions
   promote <version> [--project name]                                               Promote version to current
   rollback [--project name]                                                        Rollback to previous ready version
@@ -131,7 +133,6 @@ Commands:
   token create --dev | list | revoke <id> --project <name>                         Make (shown once), list or end dev tokens
   ls                                                                               List projects and instances
   stop <project>                                                                   Stop running instances of a project
-  logs <project>                                                                   View logs (Phase 10)
 `);
 }
 
@@ -174,11 +175,6 @@ async function handleStop(args: string[]) {
   }
 
   console.log(`Stopped instance(s) for project ${project}`);
-}
-
-async function handleLogs(args: string[]) {
-  const project = args[0] || 'app';
-  console.log(`Logs for ${project} are coming in Phase 10 (see roadmap).`);
 }
 
 main().catch((err) => {

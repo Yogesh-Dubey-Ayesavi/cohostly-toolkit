@@ -89,9 +89,9 @@ export async function verifyContextToken(token: string, o: VerifyOptions = {}): 
   return { ...(claims.ctx ?? {}), _claims: { iss: claims.iss, aud: claims.aud, sub: claims.sub, exp: claims.exp, iat: claims.iat, jti: claims.jti } }
 }
 
-type HeadersLike = Headers | Record<string, string | string[] | undefined> | { headers: Headers | Record<string, string | string[] | undefined> }
+export type HeadersLike = Headers | Record<string, string | string[] | undefined> | { headers: Headers | Record<string, string | string[] | undefined> }
 
-function getHeader(h: HeadersLike, name: string): string | undefined {
+export function getHeader(h: HeadersLike, name: string): string | undefined {
   const bag: any = 'headers' in (h as any) && typeof (h as any).headers === 'object' ? (h as any).headers : h
   if (typeof bag.get === 'function') return bag.get(name) ?? undefined
   const v = bag[name] ?? bag[name.toLowerCase()]
