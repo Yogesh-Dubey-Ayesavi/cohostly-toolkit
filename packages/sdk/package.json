@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "node --test dist/context.test.js dist/platform.test.js dist/approvals.test.js dist/log.test.js"
+    "test": "node --test dist/context.test.js dist/platform.test.js dist/approvals.test.js dist/log.test.js dist/cron.test.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc && chmod +x bin/platform",
     "start": "node dist/index.js",
-    "test": "node --test dist/dev.test.js dist/cost.test.js dist/aikeys.test.js dist/logs.test.js"
+    "test": "node --test dist/dev.test.js dist/cost.test.js dist/aikeys.test.js dist/logs.test.js dist/schedules.test.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
