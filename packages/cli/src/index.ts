@@ -15,6 +15,7 @@ import { handleAiKeys } from './commands/aikeys.js';
 import { handleToken } from './commands/tokens.js';
 import { handleLogs } from './commands/logs.js';
 import { handleSchedules } from './commands/schedules.js';
+import { handleDomains } from './commands/domains.js';
 import { installAuth, handleLogin, handleLogout, handleWhoami } from './auth.js';
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:8000';
@@ -57,6 +58,9 @@ export async function main() {
       break;
     case 'run':
       await handleSchedules(args.slice(1), API_URL, 'run');
+      break;
+    case 'domains':
+      await handleDomains(args.slice(1), API_URL);
       break;
     case 'versions':
       await handleVersions(args.slice(1), API_URL);
@@ -127,6 +131,7 @@ Commands:
   logs <project> [-f] [--version N] [--lines N] [--json]                           Show the app's recent output; -f keeps listening for new lines (owners and editors)
   schedules [list | show <name> | runs [name] | pause <name> | resume <name> | timers] --project <name>   The jobs the platform runs on a clock: plain-English times, next runs, last result
   run <schedule> --project <name>                                                  Run a schedule now (within a minute)
+  domains [list | add <hostname> | show <hostname> | remove <hostname>] --project <name>   Your own domains for the project: the DNS records to add, and where each one stands
   versions [--project name]                                                        List project versions
   promote <version> [--project name]                                               Promote version to current
   rollback [--project name]                                                        Rollback to previous ready version
