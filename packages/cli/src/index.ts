@@ -16,6 +16,7 @@ import { handleToken } from './commands/tokens.js';
 import { handleLogs } from './commands/logs.js';
 import { handleSchedules } from './commands/schedules.js';
 import { handleDomains } from './commands/domains.js';
+import { handleShip } from './commands/ship.js';
 import { handleShare } from './commands/share.js';
 import { installAuth, handleLogin, handleLogout, handleWhoami } from './auth.js';
 
@@ -59,6 +60,9 @@ export async function main() {
       break;
     case 'run':
       await handleSchedules(args.slice(1), API_URL, 'run');
+      break;
+    case 'ship':
+      await handleShip(args.slice(1), API_URL);
       break;
     case 'share':
       await handleShare(args.slice(1), API_URL);

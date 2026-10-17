@@ -173,6 +173,14 @@ export async function handleDeploy(rawArgs: string[], apiUrl: string) {
     }
 
     const data = r.last;
+    if (data && r.http < 400 && (data.status === 'awaiting_approval' || data.stage === 'awaiting_approval')) {
+      // Not a failure: the version is built and healthy, and waiting for an admin (Phase 16).
+      console.log(`\nVersion v${data.version} is built and waiting for an admin to approve it. Visitors keep seeing v${data.live_version}.`);
+      for (const x of data.risky?.length ? data.risky : data.changes ?? []) console.log(`  - ${x.text}`);
+      console.log(`Approve it here: ${data.request_url}`);
+      console.log(`Or run:          platform ship approve ${data.project} ${data.request_id}`);
+      return;
+    }
     if (!data || data.stage === 'failed' || r.http >= 400 || data.stage !== 'live') {
       const f = data ?? {};
       console.error(`\nDeployment failed${f.failed_stage ? ` while ${f.failed_stage}` : ''}.`);
