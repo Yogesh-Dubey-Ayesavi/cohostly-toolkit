@@ -192,6 +192,162 @@ ${tables('')}
       members.push('data: _Data')
       continue
     }
+    if (b.name === 'cron') {
+      classes.push(`class _Cron:
+    """Schedules and one-off timers. The platform keeps the clock; this tells it what to run and runs it when it calls.
+
+    @platform.cron("0 9 * * 1-5", name="daily-report", time_zone="Asia/Kolkata")
+    def daily_report(run): ...
+    """
+
+    MAX_PAYLOAD = 8192
+
+    def __init__(self, core: _Core):
+        self._c = core
+        self._schedules: Dict[str, Dict[str, Any]] = {}
+        self._handlers: Dict[str, Any] = {}
+        self._timer: Optional[threading.Timer] = None
+        self._ran = False
+        if self._run_mode():
+            # The code has 30 seconds to define the handler this run is for; otherwise the run fails clearly instead of hanging.
+            guard = threading.Timer(float(core.env.get("PLATFORM_RUN_DEFINE_WITHIN") or 30), self._missing)
+            guard.daemon = True
+            guard.start()
+
+    def _missing(self) -> None:
+        if not self._ran and self._find(self._run_mode() or "") is None:
+            print('platform.cron: this run is for "' + str(self._run_mode()) + '", but the code did not define it in time.', file=sys.stderr)
+            sys.stderr.flush()
+            os._exit(127)
+
+    def _run_mode(self) -> Optional[str]:
+        return self._c.env.get("PLATFORM_RUN") or None
+
+    def __call__(self, when: str, name: Optional[str] = None, time_zone: Optional[str] = None, timeout: Any = None, overlap: Optional[str] = None, retries: Optional[int] = None,
+                 misfire: Any = None, catch_up: Optional[str] = None, fresh_sandbox: Optional[bool] = None, exact: Optional[bool] = None):
+        opts = {"time_zone": time_zone, "timeout": timeout, "overlap": overlap, "retries": retries, "misfire": misfire, "catch_up": catch_up, "fresh_sandbox": fresh_sandbox, "exact": exact}
+
+        def decorator(fn):
+            n = name or fn.__name__.replace("_", "-")
+            if n == "<lambda>":
+                raise ValueError("platform.cron needs a name: the name is the schedule's identity across versions. Pass name='daily-report', or decorate a named function.")
+            self._schedules[n] = {"handler": fn, "def": {"name": n, "when": when, **{k: v for k, v in opts.items() if v is not None}}}
+            self._registered(n)
+            return fn
+        return decorator
+
+    def schedule(self, when: str, handler: Any, name: Optional[str] = None, **options: Any) -> None:
+        """The same as the decorator, in the argument order of the timer libraries: schedule(when, handler, name=...)."""
+        self(when, name=name, **options)(handler)
+
+    def on(self, name: str):
+        def decorator(fn):
+            self._handlers[name] = fn
+            self._registered(name)
+            return fn
+        return decorator
+
+    def _find(self, name: str) -> Any:
+        s = self._schedules.get(name)
+        return s["handler"] if s else self._handlers.get(name)
+
+    def _registered(self, name: str) -> None:
+        if self._run_mode():
+            if self._run_mode() == name and not self._ran:
+                threading.Timer(0.05, self._run_once).start()
+        elif self._timer is None:
+            self._timer = threading.Timer(0.25, self.sync_safely)
+            self._timer.daemon = True
+            self._timer.start()
+
+    def sync(self) -> None:
+        if not self._c.env.get("PLATFORM_TOKEN"):
+            print("platform.cron: PLATFORM_TOKEN is not set, so the schedules were not sent. They run only on the platform (or with platform dev).", file=sys.stderr)
+            return
+        if not self._schedules:
+            return
+        body = {"schedules": [s["def"] for s in self._schedules.values()]}
+        for attempt in range(6):
+            try:
+                result = self._c.call("POST", "/cron/sync", body=body, state_changing=True)
+                for w in (result or {}).get("warnings", []):
+                    print("platform.cron: " + w, file=sys.stderr)
+                if self._c.env.get("PLATFORM_SYNC_ONLY"):
+                    os._exit(0)
+                return
+            except PlatformError as e:
+                if 400 <= e.status < 500 and e.status != 429 or attempt == 5:
+                    raise
+                time.sleep(2 ** attempt)
+
+    def sync_safely(self) -> None:
+        try:
+            self.sync()
+        except Exception as e:  # the app keeps running; the owner sees the missing sync at deploy
+            print("platform.cron: the schedules could not be sent: " + str(e), file=sys.stderr)
+
+    def once(self, at: Any, name: str, payload: Any = None) -> Dict[str, Any]:
+        when = at.isoformat() if hasattr(at, "isoformat") else str(at)
+        if payload is not None and len(json.dumps(payload).encode()) > self.MAX_PAYLOAD:
+            raise ValueError("The timer's payload is larger than 8 KB. Keep an id in the payload and look the rest up when the timer fires.")
+        body: Dict[str, Any] = {"name": name, "at": when}
+        if payload is not None:
+            body["payload"] = payload
+        return self._c.call("POST", "/cron/timers", body=body, state_changing=True)
+
+    def cancel(self, id: str) -> Dict[str, Any]:
+        return self._c.call("DELETE", "/cron/timers/" + urllib.parse.quote(id, safe=""), state_changing=True)
+
+    def timers(self) -> Dict[str, Any]:
+        return self._c.call("GET", "/cron/timers")
+
+    def handle(self, name: str, body: Optional[Dict[str, Any]] = None, caller: Optional[Dict[str, Any]] = None):
+        """For a web app: call this from the route POST /__platform/jobs/<name>, with the verified caller of the request. Returns (status, json). Refuses anyone but the platform scheduler."""
+        if not caller or caller.get("kind") != "platform" or caller.get("label") != "scheduler":
+            return 403, {"error": "This address is for the platform, not for visitors."}
+        fn = self._find(name)
+        if fn is None:
+            return 404, {"error": 'This app has no schedule or timer handler called "' + name + '".'}
+        b = body or {}
+        run = {"id": b.get("run_id", ""), "name": name, "scheduled_for": b.get("scheduled_for"), "attempt": b.get("attempt") or 1, "payload": b.get("payload")}
+        try:
+            fn(run)
+        except Exception as e:
+            print("job " + name + " failed: " + str(e), file=sys.stderr)
+            return 500, {"error": "The handler failed."}
+        return 200, {"ok": True}
+
+    def _run_once(self) -> None:
+        if self._ran:
+            return
+        self._ran = True
+        name = self._run_mode() or ""
+        payload = None
+        path = self._c.env.get("PLATFORM_RUN_PAYLOAD_FILE")
+        if path:
+            try:
+                with open(path) as f:
+                    payload = json.load(f)
+            except (OSError, ValueError):
+                payload = None
+        fn = self._find(name)
+        if fn is None:
+            print('platform.cron: this run is for "' + name + '", but the code defines no schedule or handler with that name.', file=sys.stderr)
+            sys.stderr.flush()
+            os._exit(127)
+        try:
+            fn({"id": self._c.env.get("PLATFORM_RUN_ID", ""), "name": name, "scheduled_for": self._c.env.get("PLATFORM_SCHEDULED_FOR"), "attempt": int(self._c.env.get("PLATFORM_RUN_ATTEMPT") or 1), "payload": payload})
+        except BaseException as e:
+            print('platform.cron: "' + name + '" failed: ' + repr(e), file=sys.stderr)
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os._exit(1)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)`)
+      members.push('cron: _Cron')
+      continue
+    }
     const keyed = b.keyed; const keys = keyed ? Object.keys(info?.names ?? {}) : []
     const cls = `_${pascal(b.namespace)}`
     const methods: string[] = []
@@ -207,12 +363,14 @@ ${tables('')}
     classes.push(`class ${cls}:\n    def __init__(self, core: _Core${keyed ? ', name: str' : ''}):\n        self._c = core\n${keyed ? '        self._name = name\n' : ''}\n${methods.join('\n\n') || '    pass'}`)
     if (keyed) { classes.push(`class ${cls}Group:\n    def __init__(self, core: _Core):\n${keys.map((k) => `        self.${/^\w+$/.test(k) ? k : '_' + k} = ${cls}(core, ${lit(k)})`).join('\n') || '        pass'}`); members.push(`${b.namespace}: ${cls}Group`) } else members.push(`${b.namespace}: ${cls}`)
   }
-  const ctor = sorted.map((d) => { const b = d.info['x-binding']; return `        self.${b.namespace} = ${b.name === 'data' ? '_Data' : `_${pascal(b.namespace)}${b.keyed ? 'Group' : ''}`}(core)` }).join('\n') || '        pass'
+  const ctor = sorted.map((d) => { const b = d.info['x-binding']; return `        self.${b.namespace} = ${b.name === 'data' ? '_Data' : b.name === 'cron' ? '_Cron' : `_${pascal(b.namespace)}${b.keyed ? 'Group' : ''}`}(core)` }).join('\n') || '        pass'
   const hasData = sorted.some((d) => d.info['x-binding'].name === 'data')
   const body = `from __future__ import annotations
 
 import json
 import os
+import sys
+import threading
 import time
 import urllib.error
 import urllib.parse

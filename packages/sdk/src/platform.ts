@@ -4,6 +4,7 @@
 import { randomUUID } from 'node:crypto'
 import { bindingHeaders } from './context.js'
 import { approvalsHelper } from './approvals.js'
+import { cronHelper } from './cron.js'
 
 /** One callable method: where it goes and how its arguments map onto the request. */
 export interface Route {
@@ -130,6 +131,11 @@ export function createPlatform<T>(routes: Routes, options: PlatformOptions = {})
       // The request/wait/callback helper sits on the generated methods. Its request call can carry the caller's own Idempotency-Key.
       const reqRoute = b.methods.request
       out[name] = { ...methods, ...approvalsHelper(methods as never, (body, key) => call(opts, reqRoute, reqRoute.path, body, key ? { 'idempotency-key': key } : {}) as never) }
+      continue
+    }
+    if (name === 'cron' && methods && b.methods.sync) {
+      // schedule / on / once / handle sit on the generated methods; the schedules are sent by themselves shortly after start-up.
+      out[name] = cronHelper(methods as never, { env: opts.env })
       continue
     }
     out[name] = b.keys ? Object.fromEntries(b.keys.map((k) => [k, make({ name: k })])) : methods
