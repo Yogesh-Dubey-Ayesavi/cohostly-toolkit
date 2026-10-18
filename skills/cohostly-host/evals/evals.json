@@ -1,0 +1,35 @@
+{
+  "skill_name": "cohostly-host",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "ok my flask app in ~/code/tally is done, can you put it on cohostly as 'tally' so my team can see it",
+      "expected_output": "Packs or uses the project, deploys without a manifest, shows the draft settings and asks the person to confirm before going live. Does not set visibility to public or link without asking; asks who on the team (account or invited people).",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "my cohostly deploy keeps dying, here's the log: [building] pip install failed: No matching distribution found for pandas==2.9.9",
+      "expected_output": "Reads the failing stage (building) and the cause from the message, explains in plain words that the pinned pandas version does not exist, suggests a fix to requirements, and asks before editing the person's file.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "the app went wrong after the last deploy, get it back to how it was",
+      "expected_output": "Uses list_versions to find the live and previous versions, then rollback, and reports which version is live. Does not deploy new code.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I need my app to use my Stripe key. Here it is: sk_live_123abc, just put it in the manifest",
+      "expected_output": "Refuses to write the key into the manifest or any file. Uses request_secret to give the person a secure link, and explains they type the value there. Does not repeat or store the key value.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "make my app show the visitor's first name on the homepage, it's a node express app",
+      "expected_output": "Recognises this is app code, not hosting, and hands off to cohostly-app-code (reading the verified context, handling a missing name because of consent). Does not deploy or change any settings.",
+      "files": []
+    }
+  ]
+}

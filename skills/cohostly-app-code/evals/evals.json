@@ -1,0 +1,23 @@
+{
+  "skill_name": "cohostly-app-code",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "my express app on cohostly should greet the signed-in person by name and show a sign-in link to everyone else",
+      "expected_output": "Verifies the signed context token with the SDK (not raw headers), uses caller.name only when present and treats a missing name as unknown, and uses loginUrl for the sign-in link. Mentions that caller.name needs consent.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to call claude from my cohostly app. where do i put the api key?",
+      "expected_output": "Explains the platform gives AI_BASE_URL and AI_API_KEY (the binding token), not a provider key. Says the AI binding may not be live yet and checks get_contract or describe_bindings before writing calls. Does not ask for or write a provider key.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "my app crashes on start on cohostly with 'port not listening' even though it works on my laptop",
+      "expected_output": "Checks the port the health check uses (health.port) against what the app listens on, notes that PORT is not confirmed as injected, and suggests confirming on a test deploy. Does not guess a random port fix without checking.",
+      "files": []
+    }
+  ]
+}
