@@ -42,6 +42,28 @@ describe('the platform runtime', () => {
     await assert.rejects(p.widgets.get({ id: '1' }), (e: PlatformError) => e instanceof PlatformError && e.status === 403 && e.code === 'binding_not_declared' && e.howToFix === 'fix-binding_not_declared' && e.requestId === 'rid-1');
   });
 
+  test('a connection path keeps its slashes and query, and is sent as the provider path', async () => {
+    let url = '';
+    const r: Routes = { connections: { keys: ['sheet'], methods: { get: { method: 'get', path: '/connections/{name}/{path}', pathParams: ['path'] } } } };
+    const p: any = createPlatform(r, { env, fetch: (async (u: string) => { url = u; return ok({}); }) as any });
+    await p.connections.sheet.get({ path: '/v4/spreadsheets/a b/values/Sheet1!A1:B2?majorDimension=ROWS' });
+    assert.equal(url, 'https://gw.test/connections/sheet/v4/spreadsheets/a%20b/values/Sheet1!A1:B2?majorDimension=ROWS');
+  });
+
+  test('only a connection\'s {path} keeps its slashes: any other binding\'s path parameter is encoded, so it cannot add segments or a query', async () => {
+    let url = '';
+    const r: Routes = { files: { methods: { get: { method: 'get', path: '/files/{path}', pathParams: ['path'] } } } };
+    const p: any = createPlatform(r, { env, fetch: (async (u: string) => { url = u; return ok({}); }) as any });
+    await p.files.get({ path: '../admin/x?evil=1' });
+    assert.equal(url, 'https://gw.test/files/..%2Fadmin%2Fx%3Fevil%3D1');
+  });
+
+  test('a connection the person has not connected gives the app the page to send them to', async () => {
+    const body = { error: { code: 'connection_required', message: 'm', how_to_fix: 'h', connect_url: 'https://cohostly.cloud/connect?project=p&binding=sheet', connection: 'sheet' } };
+    const p: any = createPlatform(routes, { env, retries: 0, fetch: (async () => new Response(JSON.stringify(body), { status: 409 })) as any });
+    await assert.rejects(p.connections.sheet.call({ action: 'x' }, {}), (e: PlatformError) => e.code === 'connection_required' && e.connectUrl === body.error.connect_url && e.details.connection === 'sheet');
+  });
+
   test('a busy platform is retried with the same idempotency key, then succeeds', async () => {
     const keys: string[] = []; let n = 0;
     const p: any = createPlatform(routes, { env, retries: 2, fetch: (async (_u: string, i: RequestInit) => { keys.push((i.headers as any)['idempotency-key']); return ++n < 3 ? err(503, 'unavailable', { 'retry-after': '0' }) : ok({ id: 'z' }); }) as any });
@@ -96,6 +118,16 @@ describe('type generation from OpenAPI documents', () => {
     const ai = doc('ai'); ai.components!.schemas!.AiMessagesRequest = { type: 'object', required: ['model'], properties: { model: { type: 'string', enum: ['a', 'b'] } } };
     const c = generateProject([ai], { ai: { url: 'u', models: ['b'] } });
     assert.match(c.ts, /AiMessagesRequest = \{\n\s+model: "b";/);
+  });
+  test('each connection is typed with its provider\'s official client helper, and imports only what it uses', () => {
+    const conn = doc('connections', {}, true);
+    const c = generateProject([conn], { connections: { url: 'u', names: { mail: { provider: 'google' }, office: { provider: 'microsoft' }, chat: { provider: 'slack' } } } });
+    assert.match(c.ts, /mail: \{[\s\S]*?\} & GoogleConnection;/);
+    assert.match(c.ts, /office: \{[\s\S]*?\} & MicrosoftConnection;/);
+    assert.match(c.ts, /chat: \{[\s\S]*?\};/); assert.doesNotMatch(c.ts, /chat: \{[^;]*\} & /);
+    assert.match(c.ts, /type GoogleConnection, type MicrosoftConnection \} from '@cohostly\/sdk'/);
+    assert.match(c.markdown, /platform\.connections\.mail\.google\(factory, options\)/);
+    assert.doesNotMatch(generateProject([conn], { connections: { url: 'u', names: { only: { provider: 'slack' } } } }).ts, /GoogleConnection|MicrosoftConnection/);
   });
   test('an empty project says so', () => { const c = generateProject([]); assert.deepEqual(c.declared, []); assert.match(c.markdown, /No bindings are declared/); });
   test('a stale or hand-edited file is detected, and the reason says what to do', () => {

@@ -158,6 +158,8 @@ export function middleware(o: VerifyOptions & { required?: boolean } = {}) {
       const token = getHeader(req, 'x-platform-context')
       if (token) als.run({ token }, () => next()); else next()
     }, (e) => {
+      // Say why in the app's log (never the token itself): the visitor only sees the generic line.
+      console.warn(`[platform] context not verified: ${e instanceof Error ? e.message : String(e)}`)
       if (o.required !== false) { res.statusCode = 401; res.end('The platform\'s context for this request could not be verified.'); return }
       next() // verification was optional and failed: carry on without a context
     })
