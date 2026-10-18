@@ -8,3 +8,4 @@ export { mountHandlers, HOOK_PREFIX, type HookTable, type MountOptions } from '.
 export { approvalsHelper, verifyDecisionSignature, type ApprovalsApi, type ApprovalHandle, type ApprovalRecord, type ApprovalDecision, type ApprovalRequestInput, type DecisionHandler, type WaitOptions, type CallbackHandler, type CallbackOptions, type ApprovalStatus } from './approvals.js'
 export { logger, requestId, type RequestLogger } from './log.js'
 export { cronHelper, JOB_PREFIX, MAX_TIMER_PAYLOAD_BYTES, type CronApi, type CronHandler, type CronOptions, type CronMethods, type Run, type ScheduleOptions } from './cron.js'
+export { googleFetch, microsoftFetch, providerHelpers, type GoogleConnection, type MicrosoftConnection, type GoogleFactory, type GraphSdk, type KiotaFetch, type ProviderFetchOptions } from './providers.js'

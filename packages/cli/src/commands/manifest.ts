@@ -32,12 +32,14 @@ export function printSettings(settings: Setting[], title = 'Settings that will a
 }
 
 export async function handleManifest(args: string[], apiUrl: string) {
-  if (args[0] !== 'check') { console.error('Usage: platform manifest check [dir] [--manifest file] [--set setting=value]...'); process.exit(1); }
+  if (args[0] !== 'check') { console.error('Usage: platform manifest check [dir] [--manifest file] [--project name] [--set setting=value]...'); process.exit(1); }
   const { rest, overrides } = takeSetFlags(args.slice(1));
   let dir = '.';
   let manifestPath = '';
+  let project: string | undefined;
   for (let i = 0; i < rest.length; i++) {
     if (rest[i] === '--manifest' && rest[i + 1]) manifestPath = rest[++i];
+    else if (rest[i] === '--project' && rest[i + 1]) project = rest[++i];
     else if (!rest[i].startsWith('--')) dir = rest[i];
   }
   const srcDir = path.resolve(process.cwd(), dir);
@@ -49,7 +51,7 @@ export async function handleManifest(args: string[], apiUrl: string) {
   try {
     const res = await fetch(`${apiUrl}/v1/manifest/check`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ manifest_content: content || undefined, overrides: Object.keys(overrides).length ? overrides : undefined }),
+      body: JSON.stringify({ project, manifest_content: content || undefined, overrides: Object.keys(overrides).length ? overrides : undefined }),
     });
     data = await res.json();
     if (!res.ok) { console.error(`Check failed: ${data.error || res.statusText}`); process.exit(1); }
@@ -72,6 +74,10 @@ export async function handleManifest(args: string[], apiUrl: string) {
     for (const n of data.notices) console.log(`  - ${n}`);
   }
   if (data.errors.length) process.exit(1);
+  if (data.who_can_ship) {
+    console.log(`Who can ship in ${project}: ${data.who_can_ship.label}`);
+    if (data.who_can_ship.would_wait_for_approval !== undefined) console.log(data.who_can_ship.would_wait_for_approval ? `  A deploy of this manifest would wait for an admin: ${data.who_can_ship.because.join('; ')}` : '  A deploy of this manifest would go live directly.');
+  }
   printSettings(data.settings);
   const env = Object.entries(data.binding_env as Record<string, string>);
   if (env.length) {

@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { bindingHeaders } from './context.js'
 import { approvalsHelper } from './approvals.js'
 import { cronHelper } from './cron.js'
+import { providerHelpers } from './providers.js'
 
 /** One callable method: where it goes and how its arguments map onto the request. */
 export interface Route {
@@ -29,10 +30,12 @@ export interface BindingRoutes {
 export type Routes = Record<string, BindingRoutes>
 
 export class PlatformError extends Error {
-  constructor(readonly status: number, readonly code: string, message: string, readonly howToFix: string, readonly requestId?: string) {
+  constructor(readonly status: number, readonly code: string, message: string, readonly howToFix: string, readonly requestId?: string, readonly details: Record<string, unknown> = {}) {
     super(message)
     this.name = 'PlatformError'
   }
+  /** Where to send the person when a connection needs them to connect their own account (connection_required). */
+  get connectUrl(): string | undefined { return typeof this.details.connect_url === 'string' ? this.details.connect_url : undefined }
 }
 
 export interface PlatformOptions {
@@ -86,7 +89,8 @@ async function call(o: Required<Pick<PlatformOptions, 'timeoutMs' | 'retries'>> 
       try { data = text ? JSON.parse(text) : undefined } catch { data = undefined }
       if (res.ok) return data
       const e = data?.error
-      last = new PlatformError(res.status, e?.code ?? 'error', e?.message ?? `The platform answered ${res.status}.`, e?.how_to_fix ?? 'Try again in a moment.', res.headers.get('x-request-id') ?? requestId)
+      const { code: _c, message: _m, how_to_fix: _h, ...details } = (e ?? {}) as Record<string, unknown>
+      last = new PlatformError(res.status, e?.code ?? 'error', e?.message ?? `The platform answered ${res.status}.`, e?.how_to_fix ?? 'Try again in a moment.', res.headers.get('x-request-id') ?? requestId, details)
       if (!(RETRY_STATUS.has(res.status) && safeToRepeat) || attempt === o.retries) throw last
       await sleep(Math.min(5000, Number(res.headers.get('retry-after')) * 1000 || 200 * 2 ** attempt))
     } catch (e) {
@@ -99,13 +103,20 @@ async function call(o: Required<Pick<PlatformOptions, 'timeoutMs' | 'retries'>> 
   throw last!
 }
 
-function methodFor(opts: Parameters<typeof call>[0], route: Route, fill: Record<string, string>) {
+/** A connection's {path} is the provider's own path and query: each segment is encoded, the slashes and the query are kept. */
+function providerPath(raw: string): string {
+  const q = raw.indexOf('?')
+  const p = (q === -1 ? raw : raw.slice(0, q)).replace(/^\/+/, '')
+  return p.split('/').map((seg) => encodeURIComponent(seg).replace(/%3A/gi, ':').replace(/%40/g, '@')).join('/') + (q === -1 ? '' : raw.slice(q))
+}
+
+function methodFor(opts: Parameters<typeof call>[0], route: Route, fill: Record<string, string>, providerPaths = false) {
   return async (...args: unknown[]) => {
     let i = 0
     const values: Record<string, string> = { ...fill }
     if (route.pathParams?.length) Object.assign(values, args[i++] as Record<string, string>)
     const body = route.hasBody ? args[i] : undefined
-    const path = route.path.replace(/\{(\w+)\}/g, (_, k) => encodeURIComponent(String(values[k] ?? '')))
+    const path = route.path.replace(/\{(\w+)\}/g, (_, k) => (providerPaths && k === 'path' ? providerPath : encodeURIComponent)(String(values[k] ?? '')))
     return call(opts, route, path, body)
   }
 }
@@ -125,7 +136,7 @@ export function createPlatform<T>(routes: Routes, options: PlatformOptions = {})
       out[name] = { ...tables({}), $app: { ...tables({ 'x-platform-authority': 'app' }), sql: (body: unknown) => call(opts, { method: 'post', path: '/data/sql', stateChanging: true, hasBody: true }, '/data/sql', body, { 'x-platform-authority': 'app' }) } }
       continue
     }
-    const make = (fill: Record<string, string>) => Object.fromEntries(Object.entries(b.methods).map(([m, r]) => [m, methodFor(opts, r, fill)]))
+    const make = (fill: Record<string, string>) => Object.fromEntries(Object.entries(b.methods).map(([m, r]) => [m, methodFor(opts, r, fill, name === 'connections')]))
     const methods = b.keys ? undefined : make({})
     if (name === 'approvals' && methods && b.methods.request) {
       // The request/wait/callback helper sits on the generated methods. Its request call can carry the caller's own Idempotency-Key.
@@ -136,6 +147,13 @@ export function createPlatform<T>(routes: Routes, options: PlatformOptions = {})
     if (name === 'cron' && methods && b.methods.sync) {
       // schedule / on / once / handle sit on the generated methods; the schedules are sent by themselves shortly after start-up.
       out[name] = cronHelper(methods as never, { env: opts.env })
+      continue
+    }
+    if (name === 'connections' && b.keys) {
+      // Each connection also hands out its provider's official client, wired through the broker (providers.ts).
+      let names: Record<string, { provider?: string }> = {}
+      try { names = JSON.parse(opts.env.PLATFORM_BINDINGS ?? '{}')?.connections?.names ?? {} } catch { /* no map: both helpers */ }
+      out[name] = Object.fromEntries(b.keys.map((k) => [k, { ...make({ name: k }), ...providerHelpers(names[k]?.provider, () => `${baseFor(opts.env)}/connections/${k}`, { env: opts.env, fetch: opts.f }) }]))
       continue
     }
     out[name] = b.keys ? Object.fromEntries(b.keys.map((k) => [k, make({ name: k })])) : methods

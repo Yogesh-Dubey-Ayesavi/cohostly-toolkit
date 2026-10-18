@@ -1,8 +1,14 @@
 {
   "name": "@cohostly/sdk",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "files": [
+    "dist",
+    "!dist/**/*.test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -11,7 +17,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "node --test dist/context.test.js dist/platform.test.js dist/approvals.test.js dist/log.test.js dist/cron.test.js"
+    "test": "node --test dist/context.test.js dist/platform.test.js dist/approvals.test.js dist/log.test.js dist/cron.test.js dist/providers.test.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -16,6 +16,8 @@ import { handleToken } from './commands/tokens.js';
 import { handleLogs } from './commands/logs.js';
 import { handleSchedules } from './commands/schedules.js';
 import { handleDomains } from './commands/domains.js';
+import { handleShip } from './commands/ship.js';
+import { handleApprovals } from './commands/approvals.js';
 import { handleShare } from './commands/share.js';
 import { installAuth, handleLogin, handleLogout, handleWhoami } from './auth.js';
 
@@ -59,6 +61,12 @@ export async function main() {
       break;
     case 'run':
       await handleSchedules(args.slice(1), API_URL, 'run');
+      break;
+    case 'approvals':
+      await handleApprovals(args.slice(1), API_URL);
+      break;
+    case 'ship':
+      await handleShip(args.slice(1), API_URL);
       break;
     case 'share':
       await handleShare(args.slice(1), API_URL);
@@ -137,6 +145,8 @@ Commands:
   run <schedule> --project <name>                                                  Run a schedule now (within a minute)
   share [list | visibility <level> | invite <email> | role <email> <role> | remove <email>] --project <name>   Who can open the project and who it is shared with
   domains [list | add <hostname> | show <hostname> | remove <hostname>] --project <name>   Your own domains for the project: the DNS records to add, and where each one stands
+  ship [requests | approve | deny | withdraw | policy] <project>                    Who can ship a new version, and the versions waiting for an admin
+  approvals [needs-me | waiting | history | show | approve | deny | bulk | rules | allow | revoke-rule | away | end]   Everything waiting on you, in one inbox
   versions [--project name]                                                        List project versions
   promote <version> [--project name]                                               Promote version to current
   rollback [--project name]                                                        Rollback to previous ready version

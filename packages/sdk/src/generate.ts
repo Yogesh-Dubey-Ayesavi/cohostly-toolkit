@@ -16,7 +16,7 @@ export interface OpenApiDoc {
 }
 
 /** PLATFORM_BINDINGS: the addresses and the project-specific facts (allowed AI models, connection names) the manifest fixes. */
-export type BindingsMap = Record<string, { url: string; kind?: string; models?: string[]; names?: Record<string, unknown> }>
+export type BindingsMap = Record<string, { url: string; kind?: string; models?: string[]; names?: Record<string, { url?: string; provider?: string; permissions?: string[] }> }>
 
 const ident = (s: string) => (/^[A-Za-z_$][\w$]*$/.test(s) ? s : JSON.stringify(s))
 const wrap = (t: string) => (/[|{]/.test(t) ? `(${t})` : t)
@@ -149,6 +149,7 @@ export function generateProject(docs: OpenApiDoc[], map: BindingsMap = {}, conte
   const hooks: Record<string, { name: string; body: string; doc: string }[]> = {}
   const routes: Record<string, unknown> = {}
   const members: string[] = []
+  const usesClients = new Set<string>()
   const md: string[] = ['# Platform contract', '', 'This file lists what `platform` can do in this project. It is generated from the bindings this project declares; run `platform types` again after you change `bindings` in the manifest.', '']
 
   for (const raw of sorted) {
@@ -175,9 +176,16 @@ export function generateProject(docs: OpenApiDoc[], map: BindingsMap = {}, conte
     const ms = methodsOf(doc, !!b.keyed)
     routes[b.name] = { ...(keys ? { keys } : {}), methods: Object.fromEntries(ms.map((m) => [m.name, m.route])) }
     const iface = `{\n${ms.map((m) => `    /** ${m.doc} */\n    ${m.name}${m.sig};`).join('\n')}\n  }`
-    members.push(b.name === 'approvals' ? '  approvals: ApprovalsApi;' : b.name === 'cron' ? '  cron: CronApi;' : keys ? `  ${b.namespace}: {\n${keys.map((k) => `    ${ident(k)}: ${iface.replace(/\n/g, '\n  ')};`).join('\n')}\n  };` : `  ${b.namespace}: ${iface};`)
+    // A connection also hands out its provider's official client (GoogleConnection.google, MicrosoftConnection.microsoft).
+    const clientsOf = (k: string) => { if (b.name !== 'connections') return ''; const p = info?.names?.[k]?.provider; if (p === 'google') { usesClients.add('GoogleConnection'); return ' & GoogleConnection'; } if (p === 'microsoft') { usesClients.add('MicrosoftConnection'); return ' & MicrosoftConnection'; } return ''; };
+    members.push(b.name === 'approvals' ? '  approvals: ApprovalsApi;' : b.name === 'cron' ? '  cron: CronApi;' : keys ? `  ${b.namespace}: {\n${keys.map((k) => `    ${ident(k)}: ${iface.replace(/\n/g, '\n  ')}${clientsOf(k)};`).join('\n')}\n  };` : `  ${b.namespace}: ${iface};`)
 
     md.push(`## platform.${b.namespace}`, '', doc.info.description ?? '', '')
+    if (b.name === 'connections') for (const k of keys ?? []) {
+      const p = info?.names?.[k]?.provider
+      if (p === 'google') md.push(`- \`platform.connections.${k}.google(factory, options)\`: an official Google client through this connection, for example \`google(gmail, { version: 'v1' })\` with \`import { gmail } from '@googleapis/gmail'\`. Every function and type is Google's own.`)
+      if (p === 'microsoft') md.push(`- \`platform.connections.${k}.microsoft(graphSdk, kiota)\`: the official typed Microsoft Graph client through this connection, with \`import * as graphSdk from '@microsoft/msgraph-sdk'\` and \`import * as kiota from '@microsoft/kiota-http-fetchlibrary'\`.`)
+    }
     for (const m of ms) md.push(`- \`platform.${b.namespace}.${keys ? `<${keys.join(' | ')}>.` : ''}${m.name}${m.sig.replace(/: Promise<.*>$/s, '')}\`: ${m.doc}`)
     if (b.name === 'ai' && info?.models?.length) md.push('', `Allowed models: ${info.models.join(', ')}.`)
     md.push('', 'Errors come back as `PlatformError` with `code`, `message` and `howToFix`.', '')
@@ -189,7 +197,7 @@ export function generateProject(docs: OpenApiDoc[], map: BindingsMap = {}, conte
   md.push(ctx.summary)
   const hookBindings = Object.keys(hooks)
   const hooksTs = hookBindings.length ? `\n\n/** What the platform calls in to. Give a binding's handlers all together: leaving one out does not compile. */\nexport interface Handlers {\n${hookBindings.map((b) => `  ${b}?: {\n${hooks[b].map((h) => `    /** ${h.doc} */\n    ${h.name}(payload: ${h.body}, ctx: Context): void | Promise<void>;`).join('\n')}\n  };`).join('\n')}\n}\n\n/** Mount the handlers in your server: \`app.use(mountHandlers({ approvals: { decision } }).express)\`. Anything that is not a platform hook falls through to your own routes. */\nexport const mountHandlers = (handlers: Handlers) => mountHooks(handlers as never, ${JSON.stringify(Object.fromEntries(hookBindings.map((b) => [b, hooks[b].map((h) => h.name)])))});` : ''
-  const core = `import { createPlatform, context as verifiedContext, mountHandlers as mountHooks, type Routes${sorted.some((d) => d.info['x-binding'].name === 'approvals') ? ', type ApprovalsApi' : ''}${sorted.some((d) => d.info['x-binding'].name === 'cron') ? ', type CronApi' : ''} } from '@cohostly/sdk';\n\n${hasData ? TABLE_HELPERS + '\n\n' : ''}export const routes = ${JSON.stringify(routes, null, 2)} as const satisfies Routes;\n\n${schemaDecls.join('\n\n')}\n\n${ctx.ts}\n\nexport interface Platform {\n${members.join('\n')}\n  context: typeof context;\n}\n\n/** Only the bindings declared in the manifest exist here. */\nexport const platform: Platform = Object.assign(createPlatform<Omit<Platform, 'context'>>(routes as unknown as Routes), { context });\nexport default platform;${hooksTs}\n`
+  const core = `import { createPlatform, context as verifiedContext, mountHandlers as mountHooks, type Routes${sorted.some((d) => d.info['x-binding'].name === 'approvals') ? ', type ApprovalsApi' : ''}${sorted.some((d) => d.info['x-binding'].name === 'cron') ? ', type CronApi' : ''}${[...usesClients].sort().map((t) => `, type ${t}`).join('')} } from '@cohostly/sdk';\n\n${hasData ? TABLE_HELPERS + '\n\n' : ''}export const routes = ${JSON.stringify(routes, null, 2)} as const satisfies Routes;\n\n${schemaDecls.join('\n\n')}\n\n${ctx.ts}\n\nexport interface Platform {\n${members.join('\n')}\n  context: typeof context;\n}\n\n/** Only the bindings declared in the manifest exist here. */\nexport const platform: Platform = Object.assign(createPlatform<Omit<Platform, 'context'>>(routes as unknown as Routes), { context });\nexport default platform;${hooksTs}\n`
   const fingerprint = createHash('sha256').update(core).digest('hex').slice(0, 16)
   return { declared: sorted.map((d) => d.info['x-binding'].name), ts: HEADER(fingerprint) + core, markdown: md.join('\n'), fingerprint }
 }
