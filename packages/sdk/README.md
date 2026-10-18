@@ -1,6 +1,6 @@
 # @cohostly/sdk
 
-The app-side SDK. Private for now; it will be one of the two npm packages (with the CLI).
+The app-side SDK, published to npm as `@cohostly/sdk`. See `CHANGELOG.md`.
 
 - **Request context:** `context(request)`, `middleware()`, `me()`, `platformFetch()` verify and carry the signed caller context (Phase 7).
 - **The `platform` object:** `createPlatform(routes)` turns a generated route table into typed methods for the bindings a project declared (Phase 9). It owns the token, request ids, idempotency keys, timeouts, retries and structured `PlatformError`s.
