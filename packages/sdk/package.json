@@ -1,8 +1,14 @@
 {
   "name": "@cohostly/sdk",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "files": [
+    "dist",
+    "!dist/**/*.test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
