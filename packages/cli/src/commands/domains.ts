@@ -71,6 +71,11 @@ export async function handleDomains(args: string[], apiUrl: string, out: (s: str
     case 'add': {
       const b = await call('POST', '', { hostname: a.hostname });
       if (a.json) return out(JSON.stringify(b, null, 2));
+      // A name someone else holds without having proved it: not an error. Put this TXT record in DNS and the name is switched to this project by itself.
+      if (b.challenge) {
+        for (const l of [b.message, '', 'Add this record at the DNS for ' + b.challenge.hostname + ':', `  ${b.challenge.record.type}  ${b.challenge.record.name}  ->  ${b.challenge.record.value}`, '', `It is checked every few minutes until ${new Date(b.challenge.expires_at).toLocaleDateString()}.`]) out(l);
+        return;
+      }
       for (const l of formatDomain(b.domain)) out(l);
       for (const l of formatInstructions(b.instructions)) out(l);
       out('');

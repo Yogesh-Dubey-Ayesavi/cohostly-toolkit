@@ -43,3 +43,15 @@ test('add, show and remove call the API routes the dashboard uses, finding the d
   const t = out.join('\n'); assert.match(t, /CNAME {2}a\.example\.com {2}-> {2}fallback\.cohostly\.cloud/); assert.match(t, /live over HTTPS/); assert.match(t, /Removed\./);
   server.close();
 });
+
+test('adding a name someone else holds without proof prints the TXT record to take it over, not an error', async () => {
+  const server = http.createServer((_req, res) => {
+    res.setHeader('content-type', 'application/json'); res.statusCode = 202;
+    res.end(JSON.stringify({ message: 'That domain is already claimed by someone who has not proved they own it.', challenge: { hostname: 'a.example.com', expires_at: '2026-10-27T12:00:00Z', record: { type: 'TXT', name: '_cohostly-challenge.a.example.com', value: 'cohostly-verify=abc' } } }));
+  });
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  const out: string[] = [];
+  await handleDomains(['add', 'a.example.com', '--project', 'app'], `http://127.0.0.1:${(server.address() as any).port}`, (s) => out.push(s));
+  const t = out.join('\n'); assert.match(t, /not proved they own it/); assert.match(t, /TXT {2}_cohostly-challenge\.a\.example\.com {2}-> {2}cohostly-verify=abc/);
+  server.close();
+});
