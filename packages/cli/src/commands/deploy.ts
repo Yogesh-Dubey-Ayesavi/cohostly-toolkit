@@ -48,18 +48,16 @@ async function postDeploy(apiUrl: string, fields: Record<string, string>, archiv
   void lastLog;
   return { http: res.status, last };
 }
-const label = (s: string) => ({ uploading: '[1/4] Uploading', building: '[2/4] Building', starting: '[3/4] Starting', live: '[4/4] Live' } as Record<string, string>)[s] ?? s;
+const label = (s: string) => ({ analyzing: 'Analysing', uploading: '[1/4] Uploading', building: '[2/4] Building', starting: '[3/4] Starting', live: '[4/4] Live' } as Record<string, string>)[s] ?? s;
 
 function printChanges(c: any) {
   if (!c) return;
   console.log(`\nSince version v${c.previous_version}: ${c.diff.summary}`);
   for (const f of [...c.diff.added.map((x: string) => `+ ${x}`), ...c.diff.removed.map((x: string) => `- ${x}`), ...c.diff.modified.map((x: string) => `~ ${x}`)].slice(0, 12)) console.log(`    ${f}`);
-  for (const i of c.impacts ?? []) console.log(`  ${i.kind === 'info' ? 'note' : 'may affect'} ${i.field}: ${i.reason}`);
 }
 
-function printDraft(d: { fields: DraftField[]; warnings: string[]; detection: any; model: any; changes?: any }, message?: string) {
-  const det = d.detection;
-  console.log(message ? `\n${message}\n` : `\nThis looks like a ${det.framework ? det.framework + ' ' : ''}${det.language} app. There is no manifest, so here are the settings worked out from your code:\n`);
+function printDraft(d: { fields: DraftField[]; warnings: string[]; model: any; changes?: any }, message?: string) {
+  console.log(message ? `\n${message}\n` : '\nThere is no manifest, so here are the settings worked out from your code:\n');
   printChanges(d.changes);
   console.log('');
   for (const f of d.fields) {
