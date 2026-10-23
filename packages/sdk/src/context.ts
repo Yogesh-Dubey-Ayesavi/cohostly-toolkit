@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import type { PlatformContext } from './context-fields.generated.js'
-import { CONTEXT_FIELD_HEADERS } from './context-fields.generated.js'
+import { CONTEXT_FIELD_HEADERS, CONTEXT_FIELD_STATUS_HEADERS } from './context-fields.generated.js'
 
 // The request context, for apps. The platform adds `X-Platform-*` headers and one signed token (`X-Platform-Context`) to every request.
 // The headers are convenient hints. The token is what to verify before doing anything sensitive, and what to forward to bindings.
@@ -119,6 +119,14 @@ export function contextFromHeaders(request: HeadersLike): PlatformContext {
     try { v = decodeURIComponent(raw) } catch { v = raw }
     const [group, name] = id.split('.')
     ;(out[group] ??= {})[name] = id === 'access.scopes' ? raw.split(',').map((s) => decodeURIComponent(s)) : v
+  }
+  // A field the app asked for and the person does not share has no value header, only a status: null plus `<name>_status`, as in the signed token.
+  for (const [id, header] of Object.entries(CONTEXT_FIELD_STATUS_HEADERS)) {
+    if (getHeader(request, header.toLowerCase()) !== 'not_shared') continue
+    const [group, name] = id.split('.')
+    const g = (out[group] ??= {})
+    g[name] = null
+    g[`${name}_status`] = 'not_shared'
   }
   return out as PlatformContext
 }

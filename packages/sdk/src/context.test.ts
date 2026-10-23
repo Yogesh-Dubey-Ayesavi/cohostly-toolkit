@@ -114,3 +114,17 @@ test('loginUrl comes back to a path on the same host, and never to another site'
     assert.equal(loginUrl('/a'), '/__platform/login?return=%2Fa')
   } finally { if (saved === undefined) delete process.env.PLATFORM_LOGIN_URL; else process.env.PLATFORM_LOGIN_URL = saved }
 })
+
+// Phase 24: a personal field the app asked for and the person does not share arrives as null with a status, so the app can tell "not shared" from "never asked".
+test('a field the person does not share is null with a not_shared status, from the headers and from the signed token', async () => {
+  const h = contextFromHeaders({ headers: { 'x-platform-caller-kind': 'person', 'x-platform-caller-name': 'Ana', 'x-platform-caller-email-status': 'not_shared' } })
+  assert.equal(h.caller?.name, 'Ana')
+  assert.equal(h.caller?.email, null)
+  assert.equal(h.caller?.email_status, 'not_shared')
+  assert.ok(!('avatar_url' in (h.caller ?? {})), 'a field nobody asked for stays absent')
+  assert.equal(h.caller?.name_status, undefined)
+
+  const c = await verifyContextToken(await mint(good({ ctx: { caller: { kind: 'person', name: 'Ana', email: null, email_status: 'not_shared' } } })), opts)
+  assert.equal(c.caller?.email, null)
+  assert.equal(c.caller?.email_status, 'not_shared')
+})

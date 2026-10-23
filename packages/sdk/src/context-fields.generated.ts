@@ -20,11 +20,17 @@ export interface PlatformContext {
     /** The app a person connected through, such as Claude. Only present for people who signed in through an MCP client. Example: Claude */
     client?: string
     /** The person's display name. Example: Ana Silva */
-    name?: string
+    name?: string | null
+    /** "not_shared" when the app asked for caller.name and the person does not share it. */
+    name_status?: 'not_shared'
     /** The person's email address. Example: ana@example.com */
-    email?: string
+    email?: string | null
+    /** "not_shared" when the app asked for caller.email and the person does not share it. */
+    email_status?: 'not_shared'
     /** A link to the person's profile image. Example: https://example.com/ana.png */
-    avatar_url?: string
+    avatar_url?: string | null
+    /** "not_shared" when the app asked for caller.avatar_url and the person does not share it. */
+    avatar_url_status?: 'not_shared'
   }
   access?: {
     /** Why the caller is allowed in. collaborator, account, link, public, key or platform. Example: collaborator */
@@ -84,6 +90,13 @@ export const CONTEXT_FIELD_HEADERS: Record<string, string> = {
   "device.type": "X-Platform-Device-Type",
   "device.browser": "X-Platform-Device-Browser",
   "device.os": "X-Platform-Device-Os",
+}
+
+/** The header that says a requested field is not shared, for each field an app can request. The value is "not_shared". */
+export const CONTEXT_FIELD_STATUS_HEADERS: Record<string, string> = {
+  "caller.name": "X-Platform-Caller-Name-Status",
+  "caller.email": "X-Platform-Caller-Email-Status",
+  "caller.avatar_url": "X-Platform-Caller-Avatar-Url-Status",
 }
 
 /** Which preset reveals each field, so a project's typed context can leave out what its manifest never sends. */
