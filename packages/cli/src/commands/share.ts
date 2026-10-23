@@ -1,14 +1,14 @@
 // platform share [list] --project p                           who can open the project and who it is shared with
-// platform share visibility <public|link|account|private> --project p   choose who can open it
+// platform share visibility <public|link|signed_in|account|private> --project p   choose who can open it
 // platform share invite <email> [--role viewer|editor|admin] --project p  invite someone (default role: viewer)
 // platform share role <email> <viewer|editor|admin> --project p           change someone's role
 // platform share remove <email> --project p                     take someone off
 // Phase 15. Every change goes through the same API routes the dashboard and the assistants use, so it is audited the same way.
-export const VISIBILITIES = ['public', 'link', 'account', 'private'];
+export const VISIBILITIES = ['public', 'link', 'signed_in', 'account', 'private'];
 export const ROLES = ['viewer', 'editor', 'admin'];
 export interface ShareArgs { action: 'list' | 'visibility' | 'invite' | 'role' | 'remove'; project: string; json: boolean; level?: string; email?: string; role?: string }
 
-const USAGE = 'Use: platform share [list | visibility <public|link|account|private> | invite <email> [--role viewer|editor|admin] | role <email> <role> | remove <email>] --project <project> [--json]';
+const USAGE = 'Use: platform share [list | visibility <public|link|signed_in|account|private> | invite <email> [--role viewer|editor|admin] | role <email> <role> | remove <email>] --project <project> [--json]';
 
 export function parseShareArgs(args: string[]): ShareArgs | string {
   let project = '', json = false, role: string | undefined; const rest: string[] = [];
