@@ -1,6 +1,6 @@
 # Bindings and the `platform` object
 
-Read this when the app calls a platform service: the AI gateway, managed data, connections or approvals. Also read it when `check_code` reports a problem with a platform call.
+Read this when the app calls a platform service. The AI gateway and connections are below; managed data, approvals and scheduled jobs each have their own file (`data.md`, `approvals.md`, `cron.md`). Worked apps for all of them are in `assets/examples/` (`recipes.md`). Also read it when `check_code` reports a problem with a platform call.
 
 ## What a binding is
 
@@ -13,11 +13,11 @@ All of these are live. `get_contract` is still the authority on what this projec
 | Binding | Status |
 | --- | --- |
 | Secrets (`env.secrets`) | Live: `env` delivery only |
-| Managed data (`bindings.data`) | Live: one database per project; `describe_data` shows the tables and row rules |
+| Managed data (`bindings.data`) | Live: one database per project; `describe_data` shows the tables and row rules. See `data.md` |
 | AI gateway (`bindings.ai`) | Live |
-| Approvals (`bindings.approvals`) | Live in the dashboard; approval emails are not sent yet |
+| Approvals (`bindings.approvals`) | Live in the dashboard; approval emails are not sent yet. See `approvals.md` |
 | Connections (`bindings.connections.<name>`) | Live: Google and Microsoft. Slack is not set up yet. See "Connections" below |
-| Scheduled jobs (`bindings.cron`) | Live |
+| Scheduled jobs (`bindings.cron`) | Live. See `cron.md` |
 
 Run `get_contract` for what the project's `platform` object can actually call right now. If a call is not in the contract, the code cannot use it, and `check_code` will say so.
 

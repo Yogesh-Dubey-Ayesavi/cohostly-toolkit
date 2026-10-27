@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: per-person-notes-managed-data
+expected_outcome: |
+  Uses the platform's managed data, not an in-memory array, a file or an outside database. Declares the data binding, adds a migration whose table has an owner policy, and reads and writes through platform.data as the verified visitor.

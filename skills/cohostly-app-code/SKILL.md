@@ -1,6 +1,6 @@
 ---
 name: cohostly-app-code
-description: Write or fix the code of an app that runs on Cohostly. Use this whenever the code needs to know who is visiting (the signed-in person, a machine with an access key, or an anonymous visitor), read the visitor's name, time zone, country or device, add a sign-in link, read environment variables such as PORT, PLATFORM_APP_URL or PLATFORM_BINDINGS, use a secret the app was given, call the AI gateway or the platform's data, connections or approvals through the `platform` object, or run the app on the person's own machine with `platform dev`. Triggers on phrases like "use the visitor's name in my app", "call Claude from my cohostly app", "where do I read my API key on the platform", "how does my app know who is logged in". Do NOT use this to deploy, share, change visibility or write manifest settings; that is `cohostly-host`.
+description: Write or fix the code of an app that runs on Cohostly, or start a new one from a worked example. Use this whenever the code needs to know who is visiting (the signed-in person, a machine with an access key, or an anonymous visitor), read the visitor's name, time zone, country or device, add a sign-in link, read environment variables such as PORT, PLATFORM_APP_URL or PLATFORM_BINDINGS, use a secret the app was given, call the AI gateway, keep rows in the project's managed database (migrations and row policies), run something on a schedule instead of a timer, ask a person to approve an action, use a connection such as Google Sheets, or run the app on the person's own machine with `platform dev`. Also use it when someone asks how to build a kind of app on Cohostly (a notes app, a chatbot, a daily report, a form that writes to a sheet) so you start from the matching example in `assets/examples/`. Triggers on phrases like "use the visitor's name in my app", "call Claude from my cohostly app", "store data for each user", "run this every morning", "ask me before it deletes anything", "how does my app know who is logged in". Do NOT use this to deploy, share, change visibility or write manifest settings; that is `cohostly-host`.
 ---
 
 # Writing app code for Cohostly
@@ -30,6 +30,10 @@ Before writing anything that depends on the platform, check what the project rec
 - **Check the contract before relying on a call.** If `get_contract` does not list a call, do not write code that depends on it.
 - **A connection that acts as the visitor (`access: "user"`) can fail with `connection_required`.** That means "not connected yet": send the visitor to `err.connectUrl`, do not show it as an error (`references/bindings.md`).
 
+## Start from an example
+
+Six small, complete apps are in `assets/examples/`: a greeting that reads the visitor, an AI chat API, a notes API on managed data, a scheduled report, an approval gate and a form that writes to a Google Sheet. Pick the nearest one with `references/recipes.md`, then copy it with `scripts/scaffold.sh <example> <folder> [name]` and change it. Copying is faster and safer than writing the platform calls from memory, because each example already declares its bindings, handles the "not yet" answers and is safe where the platform can deliver twice.
+
 ## Local development
 
 Run the app on the person's machine with the platform's addresses and the project's secrets, but nothing written to disk:
@@ -52,4 +56,8 @@ Read only the one you need:
 
 - `references/context.md`: the visitor fields, the headers, verifying the token, and the SDK functions.
 - `references/environment.md`: every variable the platform sets, which ones are secret, and when they appear.
-- `references/bindings.md`: the `platform` object, typed calls, `platform types`, and which bindings are live.
+- `references/bindings.md`: the `platform` object, typed calls, `platform types`, the AI gateway and connections.
+- `references/data.md`: managed data: migrations, row policies, `platform.data`, `$app`, limits.
+- `references/approvals.md`: asking a person to approve an action, waiting for or receiving the answer.
+- `references/cron.md`: scheduled jobs, in the manifest or in code, and why not a timer.
+- `references/recipes.md`: which example to start from for which kind of app.

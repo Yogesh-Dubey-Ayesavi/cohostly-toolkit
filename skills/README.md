@@ -32,10 +32,13 @@ skills/<name>/
 ├── SKILL.md              # required: frontmatter + router. Under about 150 lines.
 ├── references/           # read on demand, one topic per file
 │   ├── <topic>.md        # each opens with a one-line "read this when..."
-├── evals/evals.json      # test prompts (add assertions once runs exist)
+├── assets/examples/      # complete small apps an agent copies and changes (cohostly-app-code)
+├── scripts/              # small deterministic helpers, run rather than read (scaffold.sh copies an example)
+├── evals/evals.json      # older test prompts
+├── evals/<case>/         # newer tests: prompt.md, case.yaml and graders/ (what skill-creator writes)
 ```
 
-No `scripts/` yet. Add one only when the same helper is rewritten by several test runs.
+Examples are real, not sketches. `packages/api/src/skill-examples.test.ts` checks that every example's settings file passes the platform's own resolver, every policy line parses, only existing `platform.data` calls are used, and the code parses, so an example cannot go stale without a test failing. Add a script only for something deterministic that would otherwise be rewritten each time.
 
 ### Frontmatter
 

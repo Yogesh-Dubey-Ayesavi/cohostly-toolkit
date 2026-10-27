@@ -1,0 +1,7 @@
+{
+  "manifest_version": 2,
+  "name": "visitor-greeting",
+  "visibility": "link",
+  "health": { "port": 3000 },
+  "context": { "preset": "friendly" }
+}

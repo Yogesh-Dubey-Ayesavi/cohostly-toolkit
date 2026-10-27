@@ -68,7 +68,7 @@ Validation errors name the field and the allowed pattern in plain words. Fix the
 
 - `runtime.engine` present with `unikraft`: remove the line.
 - A binding name that is reserved (`ai`, `approvals`, `data`, `connections`, `bindings`, `platform`) used as a connection name: rename it. Names are API; once an app's code uses a name, renaming it breaks the app, so ask before renaming.
-- Memory below 256 or above 1024: an error. Pick a value in range.
+- Memory below 256 or above 2048: an error. The sizes are 256, 512, 1024 and 2048 MB; a value between two sizes rounds up. Pick a value in range.
 
 ## Changing a deployed app's settings
 

@@ -1,0 +1,7 @@
+{
+  "name": "notes-data",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": { "start": "node server.js", "types": "platform types --project notes-data" },
+  "dependencies": { "@cohostly/sdk": "^0.1.1", "express": "^4.19.2" }
+}

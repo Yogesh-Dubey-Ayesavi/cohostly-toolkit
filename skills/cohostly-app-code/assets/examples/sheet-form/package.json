@@ -1,0 +1,7 @@
+{
+  "name": "sheet-form",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": { "start": "node server.js", "types": "platform types --project sheet-form" },
+  "dependencies": { "@cohostly/sdk": "^0.1.1", "@googleapis/sheets": "^9.0.0", "express": "^4.19.2" }
+}
