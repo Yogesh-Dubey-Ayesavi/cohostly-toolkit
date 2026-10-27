@@ -1,4 +1,6 @@
-# manifest.json
+# cohostly.json (the settings file)
+
+The file is `cohostly.json` at the root of the app folder. It has the same settings as the older `manifest.json`, which still works when it is Cohostly's own (a web app's or a browser extension's `manifest.json` is ignored). If both are there, `cohostly.json` is used. "Manifest" is still the name of the idea: the tool `check_manifest` and the `manifest` parameter take the text of this file.
 
 Read this when the person asks for a setting to change, when a draft needs editing, or when `check_manifest` reports a problem.
 

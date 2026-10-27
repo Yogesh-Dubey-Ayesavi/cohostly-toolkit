@@ -11,12 +11,12 @@ import { envForDeploy, ENV_FILES } from '../env-files.js';
 const MAX_UPLOAD = 50 * 1024 * 1024; // the API's upload limit
 
 /** Packs the folder into a .tar.gz (without node_modules, .git and similar, and without the .env files at its root, which are sent as secrets instead) so the API can be on another machine. */
-export function packFolder(dir: string): Buffer {
+export function packFolder(dir: string, o: { skipEnvLike?: boolean } = {}): Buffer {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'platform-deploy-'));
   const file = path.join(tmp, 'source.tar.gz');
   try {
     // The env files at the root are left out by naming what goes in (a tar exclude pattern would also match a .env in a subfolder, and differs between bsd and GNU tar).
-    const entries = fs.readdirSync(dir).filter((n) => !(ENV_FILES as readonly string[]).includes(n)).sort();
+    const entries = fs.readdirSync(dir).filter((n) => !(ENV_FILES as readonly string[]).includes(n) && !(o.skipEnvLike && (n === '.env' || n.startsWith('.env.')))).sort();
     if (!entries.length) throw new Error('there is nothing to deploy here except .env files, and those are never uploaded');
     execFileSync('tar', ['-czf', file, '--exclude=node_modules', '--exclude=.git', '--exclude=.vercel', '--exclude=.next', '--exclude=__pycache__', '--exclude=.DS_Store', '--exclude=._*', '-C', dir, ...entries], { stdio: 'pipe', env: { ...process.env, COPYFILE_DISABLE: '1' } });
     return fs.readFileSync(file);
@@ -26,12 +26,17 @@ export function packFolder(dir: string): Buffer {
 interface DraftField { path: string; value: unknown; reason: string; confidence: string; in_manifest: boolean }
 
 /** One line per stage as it happens; returns the final outcome line. */
-async function postDeploy(apiUrl: string, fields: Record<string, string>, archive: Buffer, quiet: boolean): Promise<{ http: number; last: any }> {
-  const form = new FormData();
-  for (const [k, v] of Object.entries(fields)) form.set(k, v);
-  // The folder is uploaded: the API runs on another machine and cannot read this disk.
-  form.set('tarball', new Blob([new Uint8Array(archive)]), 'source.tar.gz');
-  const res = await fetch(`${apiUrl}/v1/deploy`, { method: 'POST', body: form, headers: { accept: 'application/x-ndjson' } });
+export async function postDeploy(apiUrl: string, fields: Record<string, string>, archive: Buffer | null, quiet: boolean): Promise<{ http: number; last: any }> {
+  // The folder is uploaded: the API runs on another machine and cannot read this disk. With no archive the fields go as JSON (the archive was sent to an upload address already).
+  let res: Response;
+  if (archive) {
+    const form = new FormData();
+    for (const [k, v] of Object.entries(fields)) form.set(k, v);
+    form.set('tarball', new Blob([new Uint8Array(archive)]), 'source.tar.gz');
+    res = await fetch(`${apiUrl}/v1/deploy`, { method: 'POST', body: form, headers: { accept: 'application/x-ndjson' } });
+  } else {
+    res = await fetch(`${apiUrl}/v1/deploy`, { method: 'POST', body: JSON.stringify(fields), headers: { accept: 'application/x-ndjson', 'content-type': 'application/json' } });
+  }
   if (res.status === 413) return { http: 413, last: { stage: 'failed', error: 'The server refused the upload because it is too large (about 30 MB is the most it accepts in one request). Leave out build output, large data files and dependency folders (node_modules and .git are already left out), then deploy again.' } };
   const type = res.headers.get('content-type') ?? '';
   if (!type.includes('ndjson')) { const data = (await res.json().catch(() => ({}))) as any; return { http: res.status, last: res.ok ? { stage: 'live', ...data } : { stage: 'failed', status: res.status, ...data } }; }
@@ -54,6 +59,16 @@ async function postDeploy(apiUrl: string, fields: Record<string, string>, archiv
 }
 const label = (s: string) => ({ analyzing: 'Analysing', uploading: '[1/4] Uploading', building: '[2/4] Building', starting: '[3/4] Starting', live: '[4/4] Live' } as Record<string, string>)[s] ?? s;
 
+const SOURCE_WORDS: Record<string, string> = { you: 'set by you', capture: 'seen when you ran it', railpack: 'detected by Railpack', ai: 'worked out from the code', default: 'the standard setting' };
+
+/** The nine build settings, each with its value and where it came from. */
+export function printBuildSettings(rows: { path: string; value: unknown; source: string }[] | undefined) {
+  if (!rows?.length) return;
+  const w = Math.max(...rows.map((r) => r.path.length));
+  console.log('\nBuild settings:');
+  for (const r of rows) console.log(`  ${r.path.padEnd(w)}  ${(r.value === null || r.value === undefined ? '-' : typeof r.value === 'string' ? r.value : JSON.stringify(r.value)).padEnd(28)}  ${SOURCE_WORDS[r.source] ?? r.source}`);
+}
+
 function printChanges(c: any) {
   if (!c) return;
   console.log(`\nSince version v${c.previous_version}: ${c.diff.summary}`);
@@ -69,6 +84,7 @@ function printDraft(d: { fields: DraftField[]; warnings: string[]; model: any; c
     console.log(`  ${f.path.padEnd(22)} ${v.padEnd(34)} ${f.in_manifest ? '' : '(standard) '}[${f.confidence}]`);
     console.log(`  ${''.padEnd(22)} ${f.reason}`);
   }
+  printBuildSettings((d as any).build_settings);
   if (d.model?.fallback) console.log(`\nNote: ${d.model.fallback}`);
   for (const w of d.warnings ?? []) console.warn(`Warning: ${w}`);
 }
@@ -80,12 +96,48 @@ async function ask(q: string): Promise<string> {
 
 /** Lets the person change the draft in their editor. Returns the edited text, or null when it is not valid JSON. */
 function editManifest(text: string): string | null {
-  const tmp = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'platform-edit-')), 'manifest.json');
+  const tmp = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'platform-edit-')), 'cohostly.json');
   fs.writeFileSync(tmp, text);
   const editor = process.env.VISUAL || process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi');
   spawnSync(editor, [tmp], { stdio: 'inherit', shell: true });
   const out = fs.readFileSync(tmp, 'utf-8');
   try { JSON.parse(out); return out; } catch { console.error('That is not valid JSON, so the edit was ignored.'); return null; }
+}
+
+/** Prints how a deploy ended. Returns false when it ended without going live (an approval is waiting); exits the process when it failed. */
+export function reportOutcome(r: { http: number; last: any }, showSettings: boolean): boolean {
+  const data = r.last;
+  if (data && r.http < 400 && (data.status === 'awaiting_approval' || data.stage === 'awaiting_approval')) {
+    // Not a failure: the version is built and healthy, and waiting for an admin (Phase 16).
+    console.log(`\nVersion v${data.version} is built and waiting for an admin to approve it. Visitors keep seeing v${data.live_version}.`);
+    for (const x of data.risky?.length ? data.risky : data.changes ?? []) console.log(`  - ${x.text}`);
+    console.log(`Approve it here: ${data.request_url}`);
+    console.log(`Or run:          platform ship approve ${data.project} ${data.request_id}`);
+    return false;
+  }
+  if (!data || data.stage === 'failed' || r.http >= 400 || data.stage !== 'live') {
+    const f = data ?? {};
+    console.error(`\nDeployment failed${f.failed_stage ? ` while ${f.failed_stage}` : ''}.`);
+    if (f.code) console.error(`  Code:            ${f.code}`);
+    if (f.cause) { console.error(`  What went wrong: ${f.cause}`); console.error(`  What to do:      ${f.fix}`); for (const l of f.log_tail ?? []) console.error(`    ${l}`); }
+    else console.error(`  ${f.details || f.error || 'The server did not answer with a result.'}`);
+    if (f.retry_after) console.error(`  Try again in ${f.retry_after} seconds.`);
+    process.exit(1);
+  }
+
+  console.log(`\nDeployed project: ${data.project} (version v${data.version})`);
+  console.log(`URL:    ${data.url}`);
+  if (data.deduped) console.log(`Notice: ${data.notice}`);
+  printChanges(data.changes);
+  printBuildSettings(data.build_settings);
+  for (const n of data.notices ?? []) console.log(`Notice: ${n}`);
+  if ((data.no_manifest || showSettings) && data.settings) printSettings(data.settings, data.no_manifest ? 'Settings used (no manifest, so these are the defaults):' : 'Settings used:');
+  if (data.warnings && data.warnings.length > 0) {
+    for (const w of data.warnings) {
+      console.warn(`Warning: ${w}`);
+    }
+  }
+  return true;
 }
 
 export async function handleDeploy(rawArgs: string[], apiUrl: string) {
@@ -166,7 +218,7 @@ export async function handleDeploy(rawArgs: string[], apiUrl: string) {
       const d = r.last;
       printDraft(d.draft, d.draft.changes ? d.message : undefined);
       if (!process.stdin.isTTY) {
-        console.error('\nNothing was deployed. Run again with --yes to accept these settings, or save them as manifest.json and pass --manifest.');
+        console.error('\nNothing was deployed. Run again with --yes to accept these settings, or save them as cohostly.json in your folder.');
         process.exit(2);
       }
       let edited: string | undefined;
@@ -179,35 +231,7 @@ export async function handleDeploy(rawArgs: string[], apiUrl: string) {
       r = await postDeploy(apiUrl, { ...base, confirm_token: d.confirm_token, ...(edited ? { manifest: edited } : {}) }, archive, false);
     }
 
-    const data = r.last;
-    if (data && r.http < 400 && (data.status === 'awaiting_approval' || data.stage === 'awaiting_approval')) {
-      // Not a failure: the version is built and healthy, and waiting for an admin (Phase 16).
-      console.log(`\nVersion v${data.version} is built and waiting for an admin to approve it. Visitors keep seeing v${data.live_version}.`);
-      for (const x of data.risky?.length ? data.risky : data.changes ?? []) console.log(`  - ${x.text}`);
-      console.log(`Approve it here: ${data.request_url}`);
-      console.log(`Or run:          platform ship approve ${data.project} ${data.request_id}`);
-      return;
-    }
-    if (!data || data.stage === 'failed' || r.http >= 400 || data.stage !== 'live') {
-      const f = data ?? {};
-      console.error(`\nDeployment failed${f.failed_stage ? ` while ${f.failed_stage}` : ''}.`);
-      if (f.cause) { console.error(`  What went wrong: ${f.cause}`); console.error(`  What to do:      ${f.fix}`); for (const l of f.log_tail ?? []) console.error(`    ${l}`); }
-      else console.error(`  ${f.details || f.error || 'The server did not answer with a result.'}`);
-      if (f.retry_after) console.error(`  Try again in ${f.retry_after} seconds.`);
-      process.exit(1);
-    }
-
-    console.log(`\nDeployed project: ${data.project} (version v${data.version})`);
-    console.log(`URL:    ${data.url}`);
-    if (data.deduped) console.log(`Notice: ${data.notice}`);
-    printChanges(data.changes);
-    for (const n of data.notices ?? []) console.log(`Notice: ${n}`);
-    if ((data.no_manifest || showSettings) && data.settings) printSettings(data.settings, data.no_manifest ? 'Settings used (no manifest, so these are the defaults):' : 'Settings used:');
-    if (data.warnings && data.warnings.length > 0) {
-      for (const w of data.warnings) {
-        console.warn(`Warning: ${w}`);
-      }
-    }
+    if (!reportOutcome(r, showSettings)) return;
   } catch (err: any) {
     console.error(`Failed to connect to API at ${apiUrl}: ${err.message}`);
     process.exit(1);
