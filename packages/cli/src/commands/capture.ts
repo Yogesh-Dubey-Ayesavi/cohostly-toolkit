@@ -92,7 +92,7 @@ export async function handleCapture(rawArgs: string[], apiUrl: string): Promise<
   try { railpackBin = await ensureRailpack({ log: say }); } catch (e: any) { console.error(e.message); process.exit(1); }
 
   let result: CaptureResult;
-  try { result = await capture({ dir, argv: a.argv, command: a.command, railpackBin, probePath: a.probePath, timeoutSec: a.timeoutSec, allowLocalUrls: a.allowLocalUrls, onStage: say }); }
+  try { result = await capture({ dir, argv: a.argv, command: a.command, railpackBin, probePath: a.probePath, timeoutSec: a.timeoutSec, allowLocalUrls: a.allowLocalUrls, overrides: a.overrides, onStage: say }); }
   catch (e: any) { console.error(`Capture could not run: ${e.message}`); process.exit(1); }
 
   const you = applyOverrides(result.manifest, a.overrides);
