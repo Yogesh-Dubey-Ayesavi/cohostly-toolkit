@@ -4,19 +4,21 @@
   "private": true,
   "type": "module",
   "bin": {
-    "platform": "./bin/platform"
+    "platform": "./bin/platform",
+    "cohostly": "./bin/platform"
   },
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc && chmod +x bin/platform",
     "start": "node dist/index.js",
-    "test": "node --test dist/dev.test.js dist/cost.test.js dist/aikeys.test.js dist/logs.test.js dist/schedules.test.js dist/domains.test.js dist/state.test.js dist/share.test.js dist/ship.test.js dist/approvals.test.js dist/env-files.test.js"
+    "test": "node --test dist/dev.test.js dist/cost.test.js dist/aikeys.test.js dist/logs.test.js dist/schedules.test.js dist/domains.test.js dist/state.test.js dist/share.test.js dist/ship.test.js dist/approvals.test.js dist/env-files.test.js dist/railpack-download.test.js dist/bin-name.test.js dist/capture.test.js dist/failure-codes.test.js dist/manifest-file.test.js dist/build-flags.test.js dist/snapshot.test.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.5.0"
   },
   "dependencies": {
+    "@cohostly/capture": "file:../capture",
     "@cohostly/sdk": "file:../sdk"
   }
 }

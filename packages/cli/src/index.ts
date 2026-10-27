@@ -1,4 +1,6 @@
 import { handleDeploy } from './commands/deploy.js';
+import { handleCapture } from './commands/capture.js';
+import { handlePack, handleInspect, deploySnapshotFile } from './commands/snapshot.js';
 import { handleVersions } from './commands/versions.js';
 import { handlePromote } from './commands/promote.js';
 import { handleRollback } from './commands/rollback.js';
@@ -44,8 +46,19 @@ export async function main() {
     case 'whoami':
       await handleWhoami(API_URL);
       break;
-    case 'deploy':
-      await handleDeploy(args.slice(1), API_URL);
+    case 'deploy': {
+      const snap = args.slice(1).find((a) => a.endsWith('.cohostly') && !a.startsWith('--'));
+      if (snap) await deploySnapshotFile(snap, args.slice(1), API_URL); else await handleDeploy(args.slice(1), API_URL);
+      break;
+    }
+    case 'pack':
+      await handlePack(args.slice(1), API_URL);
+      break;
+    case 'inspect':
+      handleInspect(args.slice(1));
+      break;
+    case 'capture':
+      await handleCapture(args.slice(1), API_URL);
       break;
     case 'open':
       await handleOpen(args.slice(1), API_URL);
@@ -131,12 +144,15 @@ export async function main() {
 }
 
 function printHelp() {
-  console.log(`Usage: platform <command> [options]
+  console.log(`Usage: cohostly <command> [options]
 
 Commands:
   login [--token plk_...]                                                          Sign in (opens your browser), or save a key made in the dashboard
   logout / whoami                                                                  Forget the saved key / show who you are signed in as
   deploy [dir] [--project name] [--manifest file] [--set setting=value] [--yes]    Deploy an application. With no manifest, at a terminal it shows the settings it worked out and asks first; --yes accepts them without asking (scripts without --yes keep the standard settings)
+  capture [options] -- <start command ...>                                          Run your app here, see what it needs, and deploy it with no settings written: cohostly capture -- npm start (--no-deploy to only check, --json for agents)
+  pack [dir] --out app.cohostly [--no-secrets] [--env-file f] [--expires 7d]          Seal a folder, its settings and (optionally) its secrets into one .cohostly file only your account can deploy
+  inspect app.cohostly                                                             Show a .cohostly file's settings, expiry and secret names without opening anything
   new <template> [folder]                                                          Start a small project (static, flask, fastapi, express, go, nextjs) you can deploy as is
   open [project]                                                                   Open the project's web address in your browser
   manifest check [dir] [--manifest file] [--set setting=value]                     Show the effective settings and where each came from
