@@ -28,8 +28,18 @@ export async function sealCapturedEnv(dir: string, apiUrl: string, o: { expires?
     fs.rmSync(plain);
     console.error(`Sealed ${Object.keys(values).length} value(s) into ${SNAPSHOT_DIR}/env.enc (only your account can deploy them; expires ${expiresAt.toISOString().slice(0, 10)}). The file is safe to commit.`);
   } catch (e: any) {
-    console.error(`Could not seal the values (${e.message}). They stay in ${SNAPSHOT_DIR}/env.json, which is git-ignored. Sign in and run cohostly snapshot again to seal them.`);
+    console.error(sealFailureMessage(e, apiUrl));
   }
+}
+
+/** Says what went wrong while sealing and the one thing to do about it. A network failure names the server that was tried; a refusal from the server is shown as the server worded it. */
+export function sealFailureMessage(e: any, apiUrl: string): string {
+  const cause = e?.cause?.code ?? e?.cause?.message;
+  const unreachable = e?.message === 'fetch failed' || cause;
+  const why = unreachable
+    ? `Could not reach ${apiUrl}${cause ? ` (${cause})` : ''}. Check your connection, or set API_URL to the right server (for the hosted platform: export API_URL=https://api.cohostly.cloud).`
+    : String(e?.message ?? e);
+  return `Could not seal the values: ${why}\n${SNAPSHOT_DIR}/env.json now holds them in plain text (git-ignored, but readable on this machine). Fix the above and run cohostly snapshot again to seal them, then delete env.json.`;
 }
 
 /** Runs the capture tool in the current folder. `cohostly snapshot -- npm start` and `cohostly check [--generated]`. Its progress goes to the terminal. */
