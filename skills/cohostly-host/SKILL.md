@@ -1,6 +1,6 @@
 ---
 name: cohostly-host
-description: Put an app online and manage it on Cohostly, the platform that turns code into a shareable web address. Use this whenever the person wants to deploy, publish, host or "put it on cohostly", check or write a cohostly.json settings file, see or change who can open a project (public, link, account, private), share a project with someone by email, roll back or promote a version, set a secret for a project, or find out why a deploy failed. Also use it for "deploy what I'm running", "deploy this Express/Flask/Next app" and anything about `cohostly snapshot`. Works through the MCP tools (deploy, share, set_visibility and the rest), the `cohostly` CLI (also called `platform`), or the API. Do NOT use this for writing the app's own code that reads visitor context, calls the AI gateway or uses platform data; that is `cohostly-app-code`.
+description: Put an app online and manage it on Cohostly, the platform that turns code into a shareable web address. Use this whenever the person wants to deploy, publish, host or "put it on cohostly", check or write a cohostly.json settings file, see or change who can open a project (private, account, anyone signed in to Cohostly, anyone with the link, public), share a project with someone by email, roll back or promote a version, set a secret for a project, find out why a deploy failed, add a custom domain, pause or run a scheduled job, or handle a request that is waiting for approval (a deploy, opening an app wider, a higher AI spend limit). Also use it for questions about the account: its roles, shared secrets, AI keys and who can approve what. Also use it for "deploy what I'm running", "deploy this Express/Flask/Next app" and anything about `cohostly snapshot`. Works through the MCP tools (deploy, share, set_visibility and the rest), the `cohostly` CLI (also called `platform`), or the API. Do NOT use this for writing the app's own code that reads visitor context, calls the AI gateway or uses platform data; that is `cohostly-app-code`.
 ---
 
 # Hosting on Cohostly
@@ -76,5 +76,9 @@ Read only the one you need:
 - `references/snapshot.md`: `cohostly snapshot`, `check` and `deploy`: the `.cohostly/` folder, the TODO and NOTE lines, changing the build, and sealed `.cohostly` files.
 - `references/manifest.md`: `cohostly.json` (and the older `manifest.json`), its sections, defaults and warnings.
 - `references/auth.md`: sign-in for people, keys for machines, visibility levels, roles, and how visitors are checked.
+- `references/account.md`: what belongs to the account (shared secrets, AI keys, connections, activity), the kinds of request that wait for approval and who decides them.
+- `references/requests.md`: approvals, deploy requests and spend raises: the rule that a person decides, and the tools.
+- `references/domains.md`: adding, checking and removing a custom domain.
+- `references/schedules.md`: listing, pausing, resuming and running a project's scheduled jobs.
 - `references/secrets-and-tokens.md`: secrets, dev tokens, and the running app's token.
 - `references/troubleshooting.md`: reading deploy failures, one row per `code`, and common fixes.
