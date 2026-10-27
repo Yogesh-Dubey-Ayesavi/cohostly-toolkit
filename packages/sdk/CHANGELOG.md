@@ -2,6 +2,16 @@
 
 All notable changes to `@cohostly/sdk`. Versions follow semver; while the major version is 0, a minor bump may change behaviour.
 
+## 0.2.0
+
+### Changed
+
+- **A personal field the person does not share is now `null`, not missing.** `caller.name`, `caller.email` and `caller.avatar_url` are typed `string | null`. When the app asked for one and the person does not share it, the value is `null` and `<name>_status` is `'not_shared'` (for example `caller.email_status`), from the request headers and from the signed token alike, so an app can tell "not shared" from "never asked". TypeScript code that treated these as `string | undefined` needs a null check. A field the person does share is unchanged.
+
+### Added
+
+- **`CONTEXT_FIELD_STATUS_HEADERS`**: the header that carries each field's `not_shared` status (for example `X-Platform-Caller-Email-Status`).
+
 ## 0.1.1
 
 ### Fixed
