@@ -38,6 +38,8 @@ skills/<name>/
 ├── evals/<case>/         # newer tests: prompt.md, case.yaml and graders/ (what skill-creator writes)
 ```
 
+Lists that the platform itself holds (visibility levels, roles, approval kinds, project states, failure codes, limits, context and settings fields) are **not** written into the skills. They are served as data (`platform://reference/<name>`, built in `packages/api/src/mcp/reference.ts` from the tables the platform runs on), and a skill links to them. `packages/api/src/skills-cover-platform.test.ts` fails when a list, a tool, a prompt or a failure code is in the platform and in no skill.
+
 Examples are real, not sketches. `packages/api/src/skill-examples.test.ts` checks that every example's settings file passes the platform's own resolver, every policy line parses, only existing `platform.data` calls are used, and the code parses, so an example cannot go stale without a test failing. Add a script only for something deterministic that would otherwise be rewritten each time.
 
 ### Frontmatter

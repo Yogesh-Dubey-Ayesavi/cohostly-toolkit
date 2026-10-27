@@ -40,6 +40,10 @@ Code bigger than the paste limit goes through `get_upload_url`, then a plain upl
 - **After a failure, fix the cause named by `code` and redeploy at most twice.** Past that you are guessing, and every try costs a build. Stop, then tell the person what you tried and what is still wrong.
 - **Fix a wrong detected value by writing only that field** into `cohostly.json` (or its flag). Copying every detected value pins them all and switches auto-detection off. See `references/snapshot.md`.
 
+## The platform's own lists
+
+When you need a full, current list (visibility levels, roles and what each can do, kinds of approval, project states, failure codes, limits, context fields, settings fields), do not rely on a skill's wording: call `read_reference` (or read `platform://reference/index`). It is built from the same tables the platform runs on. `references/links.md` says which list answers which question.
+
 ## Operate a live project
 
 - **What is live?** `describe_project` (address, visibility, live version, settings, sharing) or `list_versions`.
@@ -82,3 +86,5 @@ Read only the one you need:
 - `references/schedules.md`: listing, pausing, resuming and running a project's scheduled jobs.
 - `references/secrets-and-tokens.md`: secrets, dev tokens, and the running app's token.
 - `references/troubleshooting.md`: reading deploy failures, one row per `code`, and common fixes.
+- `references/runtime.md`: how apps run (sleeping, no durable disk, timers, memory, builds): read before promising anything about behaviour.
+- `references/links.md`: where to look next: the platform's lists as data (`read_reference`), the site and the docs.

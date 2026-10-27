@@ -59,6 +59,19 @@ Some stock SDKs can call the AI gateway directly, because the platform gives the
 
 Use this pattern for a stock client; use `platform.ai` when you want the typed contract. Do not hard-code the provider's own address.
 
+## Other languages
+
+The typed `platform` object is TypeScript. In Python, Go or anything else, make a client from the binding's OpenAPI document with any OpenAPI generator. The document is at `<binding url>/openapi.json` (the address is in `PLATFORM_BINDINGS`), requested with the binding token in the `X-Platform-Binding-Token` header. The platform checks that its five binding documents validate and that OpenAPI Generator's Python and Go clients compile (`packages/api/scripts/verify-generated-clients.mjs`).
+
+A generated client covers the calls and their types. It does not cover what an app must do itself:
+
+- verify the request context (`verify-token.md`);
+- send the visitor's token as `X-Platform-Context` on calls made for them, so a row policy or a `user` connection knows who is asking;
+- the per-table types of managed data (the generated client sees `findMany` and a body, not your columns);
+- retries, and an `Idempotency-Key` on writes that must not run twice.
+
+Anything the platform calls into the app (a scheduled job, an approval decision) is a webhook: serve it and check the platform's signature (`approvals.md`, `cron.md`).
+
 ## Connections
 
 A connection lets the app call Google or Microsoft as an account, without ever holding a token. The manifest names it:

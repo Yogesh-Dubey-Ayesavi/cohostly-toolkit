@@ -16,7 +16,7 @@ Every request that reaches the app carries a context. It is built by the proxy a
 
 `caller.name`, `caller.email` and `caller.avatar_url` are personal. They need the person's consent, so they are missing for anyone who has not agreed. `place.city` is not given to a machine unless the owner lists it in `context.expose`. Use `describe_context` to see exactly what a given project's preset sends.
 
-Presets (the project's `context.preset`) decide how much arrives. `basic` is the default. A field's preset is in `packages/shared/context-fields.yaml`; read that file when the question is "does my app get X".
+Presets (the project's `context.preset`) decide how much arrives. `basic` is the default. Every field, the preset that reveals it, who it applies to and whether it needs consent is `platform://reference/context-fields` (or `read_reference` with `context-fields`); read that when the question is "does my app get X".
 
 ## The headers and the token
 
@@ -40,7 +40,7 @@ if (ctx?.caller.kind === 'person') {
 app.use(middleware({ required: false }))
 ```
 
-The SDK fetches the platform's public keys from `PLATFORM_AUTH_URL` (`<it>/.well-known/jwks.json`) and caches them. Python and Go helpers are planned; until then, check the signature in the SDK (`packages/sdk/src/context.ts`) and do not copy headers into your own parser.
+The SDK fetches the platform's public keys from `PLATFORM_AUTH_URL` (`<it>/.well-known/jwks.json`) and caches them. For Python, Go or any other language there is no SDK: verify the token yourself with `verify-token.md` (the exact checks), starting from `assets/examples/fastapi-verify` or `assets/examples/go-verify`. Do not read the bare headers as proof.
 
 ## Other ways to read it
 

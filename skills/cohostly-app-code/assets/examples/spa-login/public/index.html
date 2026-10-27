@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spa-login</title>
+<div id="app">Loading…</div>
+<script>
+  const app = document.getElementById('app')
+  const here = encodeURIComponent(location.pathname + location.search)
+
+  // Same origin, with the session cookie. Anonymous is a normal answer, not an error: show the sign-in link.
+  async function whoAmI() {
+    const r = await fetch('/__platform/me', { credentials: 'same-origin', headers: { accept: 'application/json' } })
+    if (!r.ok) return null
+    const ctx = await r.json()
+    return ctx.caller && ctx.caller.kind === 'person' ? ctx.caller : null
+  }
+
+  function show(caller) {
+    app.textContent = ''
+    const line = document.createElement('p')
+    const link = document.createElement('a')
+    if (caller) {
+      // caller.name is missing unless the person agreed to share it. Do not invent one.
+      line.textContent = caller.name ? 'Signed in as ' + caller.name + '. ' : 'Signed in. '
+      link.href = '/__platform/logout'
+      link.textContent = 'Sign out'
+    } else {
+      line.textContent = 'You are not signed in. '
+      link.href = '/__platform/login?return=' + here
+      link.textContent = 'Sign in'
+    }
+    line.append(link)
+    app.append(line)
+  }
+
+  whoAmI().then(show, () => show(null))
+</script>

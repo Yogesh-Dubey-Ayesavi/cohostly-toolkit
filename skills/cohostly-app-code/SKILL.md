@@ -15,7 +15,7 @@ Before writing anything that depends on the platform, check what the project rec
 
 | What | How the app reads it | Reference |
 | --- | --- | --- |
-| **Who is calling** | Signed headers and a signed token on each request, verified with the SDK. Or `GET /__platform/me`. | `references/context.md` |
+| **Who is calling** | Signed headers and a signed token on each request, verified with the SDK (or by hand in another language). Or `GET /__platform/me`. | `references/context.md`, `references/verify-token.md` |
 | **Settings and addresses** | Environment variables set at start (`PORT`, `PLATFORM_APP_URL`, `PLATFORM_BINDINGS`, and so on). | `references/environment.md` |
 | **Platform services** | The `platform` object, generated from the project's contract. | `references/bindings.md` |
 
@@ -32,7 +32,7 @@ Before writing anything that depends on the platform, check what the project rec
 
 ## Start from an example
 
-Six small, complete apps are in `assets/examples/`: a greeting that reads the visitor, an AI chat API, a notes API on managed data, a scheduled report, an approval gate and a form that writes to a Google Sheet. Pick the nearest one with `references/recipes.md`, then copy it with `scripts/scaffold.sh <example> <folder> [name]` and change it. Copying is faster and safer than writing the platform calls from memory, because each example already declares its bindings, handles the "not yet" answers and is safe where the platform can deliver twice.
+Twelve small, complete apps are in `assets/examples/`: a greeting that reads the visitor, an AI chat API, a notes API on managed data, a scheduled report, an approval gate, a form that writes to a Google Sheet, role-gated pages, an app a program calls with a key, a visitor-acting calendar view, a single-page app with sign-in, and token verifiers for Python and Go. Pick the nearest one with `references/recipes.md`, then copy it with `scripts/scaffold.sh <example> <folder> [name]` and change it. Copying is faster and safer than writing the platform calls from memory, because each example already declares its bindings, handles the "not yet" answers and is safe where the platform can deliver twice.
 
 ## Local development
 
@@ -61,3 +61,7 @@ Read only the one you need:
 - `references/approvals.md`: asking a person to approve an action, waiting for or receiving the answer.
 - `references/cron.md`: scheduled jobs, in the manifest or in code, and why not a timer.
 - `references/recipes.md`: which example to start from for which kind of app.
+- `references/sign-in.md`: the platform's sign-in or the app's own, and the visibility each needs.
+- `references/verify-token.md`: verifying the signed context in Python, Go or any language without the SDK.
+
+The platform's lists (roles, visibility, limits, context fields) are data: `platform://reference/index`, or the `read_reference` tool. The worked examples are also served as `skill://cohostly-app-code/assets/examples/...`.

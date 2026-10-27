@@ -25,6 +25,8 @@ Report the cause and fix first. Quote the log only if the cause is unclear.
 
 ## What each code means
 
+The complete, current list of codes (with each title and fix) is `platform://reference/failure-codes`; read it when a code is not in this table. This table says what to do about the ones a deploy returns.
+
 | Code | Meaning | What to do |
 | --- | --- | --- |
 | `unsupported_runtime` | The project is a kind the platform does not run (PHP, Ruby, Rust and others). | Tell the person plainly. Node, Python, Go and plain websites run today. Do not try to convert the app. |
@@ -43,7 +45,22 @@ Report the cause and fix first. Quote the log only if the cause is unclear.
 | `provider_busy` | The hosting service is throttling or full. | Not the app's fault. Wait the `Retry-After` time and try again once; do not change the code. |
 | `snapshot_invalid`, `snapshot_expired`, `snapshot_wrong_account`, `snapshot_tampered`, `snapshot_unavailable` | A `.cohostly` file could not be opened. | Make a fresh one (`snapshot.md`). Never edit one by hand. |
 
-The snapshot tool does not use failure codes: it writes `TODO(cohostly)` and `NOTE(cohostly)` lines in `.cohostly/Dockerfile`; see `snapshot.md`.
+The snapshot tool finds these on the person's own computer, before anything is uploaded. It writes them as `TODO(cohostly)` and `NOTE(cohostly)` lines in `.cohostly/Dockerfile` (see `snapshot.md`):
+
+| Code | Meaning | What to do |
+| --- | --- | --- |
+| `secret_in_command` | The start command contains a secret. | Move it into an environment variable, then capture again. |
+| `no_http_port` | The app did not answer HTTP while it was captured. | Check it starts a web server, or give it longer with `--timeout`. |
+| `absolute_start_path` | The start command uses a path on this computer. | Start it with a command that works from the app folder, such as `node server.js`. |
+| `railpack_disagrees` | The app and the folder do not match. | Capture from the folder that holds the app, or pass `--dir`. |
+| `too_many_secrets` | One deploy carries up to 100 secrets and there are more. | Drop variables the app does not need. |
+| `local_service` | A variable points at this computer. | Use a hosted address, or `--allow-local-urls`. |
+| `extra_ports` | The app listens on more than one port. | Only the port it answers on is online; tell the person. |
+| `unlisted_packages` | The app loaded packages its own list does not name. | Add them to `package.json` or `requirements.txt`. |
+| `extra_program` | The app starts a program a plain image may lack. | Add the Debian package to `runtime.system_packages`. |
+| `reserved_name` | A variable name is set by the platform. | Nothing: it was not sent. |
+| `unset_variable` | The app read a variable that was not set. | Set it before deploying if the app needs it. |
+| `value_not_found` | A variable is set but its value was not found. | Set it in the environment or a `.env` file and capture again. |
 
 **How many tries.** Fix the cause the code names, redeploy, and stop after two tries. If it still fails, tell the person what you changed, what the platform said last and what you think is still wrong. A third guess costs another build and usually repeats the second.
 

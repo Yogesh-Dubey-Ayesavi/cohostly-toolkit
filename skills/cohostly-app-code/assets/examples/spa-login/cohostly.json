@@ -1,0 +1,7 @@
+{
+  "manifest_version": 2,
+  "name": "spa-login",
+  "visibility": "link",
+  "health": { "port": 3000 },
+  "context": { "preset": "friendly" }
+}

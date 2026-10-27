@@ -1,6 +1,6 @@
 # Recipes: building different kinds of app on Cohostly
 
-Read this at the start of a new app, to pick the closest worked example and the bindings it needs. Each example is a complete small app in `assets/examples/<name>/` with its settings file, code and a README. Copy one, then change it, rather than writing the platform parts from memory.
+Read this at the start of a new app, to pick the closest worked example and the bindings it needs. If the app needs sign-in, read `sign-in.md` first: the choice between the platform's login and the app's own decides the visibility. Each example is a complete small app in `assets/examples/<name>/` with its settings file, code and a README. Copy one, then change it, rather than writing the platform parts from memory.
 
 ```bash
 scripts/scaffold.sh --list                       # the examples
@@ -17,6 +17,12 @@ scripts/scaffold.sh notes-data ./my-notes        # copy one, named my-notes (nev
 | do something on a clock (a daily report, a nightly cleanup, a reminder at a set time) | `scheduled-report` (TypeScript) | `cron`, `data` | `cron.md` |
 | wait for a person to confirm something risky before doing it | `approval-gate` (TypeScript) | `approvals` | `approvals.md` |
 | read or write a person's Google or Microsoft account (a sheet, a mailbox, a calendar) | `sheet-form` (TypeScript, Express) | `connections` | `bindings.md` |
+| gate pages by role (members, editors, an owner-only admin page) | `roles-gate` (TypeScript, Express) | none | `context.md` |
+| accept calls from a program (a webhook, Zapier, a script) with an access key | `machine-access` (TypeScript, Express) | none | `verify-token.md` |
+| act as each visitor's own Google account (their calendar, their sheet) | `my-agenda` (TypeScript, Express) | `connections` (`access: "user"`) | `bindings.md` |
+| a single-page app that knows who is signed in, with sign-in and sign-out links | `spa-login` (static page, small Node server) | none | `context.md` |
+| verify who is calling from Python | `fastapi-verify` (FastAPI) | none | `verify-token.md` |
+| verify who is calling from Go | `go-verify` (Go, standard library) | none | `verify-token.md` |
 | serve static files, or an ordinary web app with no platform features | none: deploy it as it is | none | `cohostly-host` |
 
 Combine them. A real app usually mixes two or three: for example `notes-data` plus the `visitor-greeting` sign-in link, or `scheduled-report` that writes through `$app` and asks `approval-gate` before deleting.

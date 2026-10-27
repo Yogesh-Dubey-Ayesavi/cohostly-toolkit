@@ -4,6 +4,14 @@ Read this when the MCP tools for Cohostly are available and you need to know wha
 
 The server is at `https://api.<platform-domain>/mcp` (Streamable HTTP, stateless). Every call runs as the signed-in person and is written to the activity log as made by an agent. Tool descriptions are sent to the client too; this file covers the workflow and the parts the descriptions leave out.
 
+## Beyond tools
+
+The server also offers:
+
+- **Resources.** `skill://<name>/<path>` for the skills, their references and the worked example apps (`skill://index` lists them all); `platform://reference/<name>` for the platform's lists (`platform://reference/index`).
+- **Tools for clients that do not read resources.** `read_skill` (skill and path) and `read_reference` (name; empty for the index).
+- **Prompts** a client may show as a menu: `deploy_folder`, `share_safely`, `debug_failed_deploy`, `add_sign_in`. Each is a short request that points back at these skills.
+
 ## Calls in order, for one deploy
 
 ```

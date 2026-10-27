@@ -20,6 +20,8 @@ Rules to repeat to the person when relevant:
 
 ## Visibility: who can open the app's address
 
+The current list of levels, as data: `platform://reference/visibility`. If an app has its own login (Supabase, Firebase, Auth0), read `cohostly-app-code/references/sign-in.md` before choosing a level: a login behind `private`, `account` or `signed_in` is never reached by anonymous visitors.
+
 There are five levels, from narrowest to widest. `set_visibility` and `platform share` take all five.
 
 | Level | Who can open the app |
@@ -47,6 +49,8 @@ Opening an app wider than it is now (to `signed_in`, `link` or `public`) is a de
 Access checks happen on every request at the proxy. A change takes effect within about 30 seconds, usually at the next request. A browser that is not signed in is sent to sign in; a script or a signed-in stranger with no access gets a plain "not found", so the app does not reveal that it exists.
 
 ## Roles
+
+What each role may do, built from the action registry: `platform://reference/roles`.
 
 On a project:
 

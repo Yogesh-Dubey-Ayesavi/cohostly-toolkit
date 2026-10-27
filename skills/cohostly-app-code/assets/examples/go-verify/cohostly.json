@@ -1,0 +1,6 @@
+{
+  "manifest_version": 2,
+  "name": "go-verify",
+  "visibility": "private",
+  "health": { "port": 3000, "path": "/health" }
+}
