@@ -14,7 +14,7 @@ Why run it instead of guessing from the files: a guess can be wrong about the po
 2. `cohostly capture --json -- npm start` (swap in the real command). `--json` prints one result an agent can read; without it the same facts are printed as text.
 3. The result has `ok`, `stage` (`checks`, `upload`, `build`, `start` or `live`), `problems` and `settings`. Each problem has `code`, `blocking`, `message` and `fix`. Each setting has a `value` and a `source`.
 4. Fix every **blocking** problem, then run capture again. Warnings (`blocking: false`) do not stop a deploy; mention the ones that matter to the person.
-5. `ok: true` with `stage: "live"` means it is online, and `url` is the address. Say that only then.
+5. `ok: true` with `stage: "live"` means it is online, and `url` is the address. Say that only then. Capture does not choose who can open the app: from a shell, `cohostly ls` shows the project's visibility (there is no `cohostly describe`; `describe_project` is an MCP tool). Tell the person what it is and ask before changing it.
 
 Capture runs the app directly and never needs Docker. It does not work on native Windows (use WSL2) and needs an app with an HTTP port; a worker or a script has no port to find.
 
