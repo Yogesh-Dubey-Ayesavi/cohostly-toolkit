@@ -41,9 +41,9 @@ Report the cause and fix first. Quote the log only if the cause is unclear.
 | `start_crashed` | The app exited right after starting. | Read the output in the reply, fix that error, redeploy. |
 | `upload_too_large` | The upload is over the limit. | Leave out build output and large data files; for archives that are just big, `get_upload_url`. |
 | `provider_busy` | The hosting service is throttling or full. | Not the app's fault. Wait the `Retry-After` time and try again once; do not change the code. |
-| `snapshot_invalid`, `snapshot_expired`, `snapshot_wrong_account`, `snapshot_tampered`, `snapshot_unavailable` | A `.cohostly` file could not be opened. | Make a fresh one (`capture.md`). Never edit one by hand. |
+| `snapshot_invalid`, `snapshot_expired`, `snapshot_wrong_account`, `snapshot_tampered`, `snapshot_unavailable` | A `.cohostly` file could not be opened. | Make a fresh one (`snapshot.md`). Never edit one by hand. |
 
-Capture's own checks (`local_service`, `no_http_port`, `secret_in_command` and the rest) use the same names and are in `capture.md`.
+The snapshot tool does not use failure codes: it writes `TODO(cohostly)` and `NOTE(cohostly)` lines in `.cohostly/Dockerfile`; see `snapshot.md`.
 
 **How many tries.** Fix the cause the code names, redeploy, and stop after two tries. If it still fails, tell the person what you changed, what the platform said last and what you think is still wrong. A third guess costs another build and usually repeats the second.
 

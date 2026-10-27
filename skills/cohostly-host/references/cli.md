@@ -28,7 +28,7 @@ platform deploy [dir] --project <name> --draft    # print the draft, do not depl
 - Without a terminal (an agent or CI), it does not ask. Use `--draft` first, read the draft, then deploy with `--manifest` or `--yes`. Only use `--yes` when the person has agreed to the settings.
 - `--skip-types-check` skips checking code against the platform contract. Do not use it to hide a real error.
 
-Setting flags, on `deploy` and `capture`: `--language`, `--node-version` / `--python-version` / `--go-version` (all set `runtime.version`), `--root`, `--install` (the install command), `--build`, `--start`, `--port`, `--package-manager`. Each is a shortcut for `--set <path>=<value>`. A value set this way is the person's own word and shows as `you`; everything not set is still detected.
+Setting flags, on `deploy`: `--language`, `--node-version` / `--python-version` / `--go-version` (all set `runtime.version`), `--root`, `--install` (the install command), `--build`, `--start`, `--port`, `--package-manager`. Each is a shortcut for `--set <path>=<value>`. A value set this way is the person's own word and shows as `you`; everything not set is still detected.
 
 Start a small new project from a template:
 
@@ -36,27 +36,27 @@ Start a small new project from a template:
 platform new <static|flask|fastapi|express|go|nextjs> [folder]
 ```
 
-## Capture: deploy what already runs
+## Snapshot: deploy what already runs
 
 ```bash
-cohostly capture [options] -- <start command ...>
-cohostly capture [options] --command "<shell line>"
+cohostly snapshot [--expires 30d] [--account <id>] -- <start command ...>
+cohostly check [--generated]
+cohostly deploy [dir] [--project <name>] [--generated] [--force]
 ```
 
-| Option | Meaning |
+| Command or option | Meaning |
 | --- | --- |
-| `--project <name>` | project name; defaults to the folder name, lowercased with dashes |
-| `--dir <path>` | the app folder, default `.` |
-| `--probe-path <path>` | the page capture asks for, default `/` |
-| `--timeout <seconds>` | how long to wait for the app to listen, default 30, at most 300 |
-| `--json` | one result for agents: `ok`, `stage`, `url`, `problems`, `settings` |
-| `--no-deploy` | check and print what would be deployed; upload nothing |
-| `--save` / `--force` | also write `cohostly.json` (refuses to overwrite one without `--force`) |
-| `--allow-local-urls` | deploy even when a variable points at localhost |
-| `--out <file>` | write a sealed `.cohostly` file instead of deploying; also `--no-secrets`, `--expires <1d..30d>`, `--account <id>` |
-| setting flags, `--set` | override one detected value (see above) |
+| `snapshot -- <command>` | run the app here and write `.cohostly/` (Dockerfile, cohostly.json, capture.json, env.enc). The command after `--` runs directly, with no shell |
+| `snapshot --timeout <duration>` | how long to wait for the app to listen, for example `60s` (default 30s) |
+| `snapshot --probe-path <path>` | the page `check` asks for, default `/` |
+| `snapshot --forward-loopback` | forward the port of an app that only listens on 127.0.0.1 |
+| `snapshot --expires <1d..30d>`, `--account <id>` | life and account of the sealed `env.enc` (default 30d, your first account) |
+| `check` | build and start the Dockerfile that would be deployed: `./Dockerfile` if there is one, else `.cohostly/Dockerfile`. Needs Docker. Never edits a file |
+| `check --generated` | check the generated Dockerfile even if the project has its own |
+| `deploy` | in a folder with a snapshot, deploys it. Stops while a `TODO(cohostly)` line is open (`--force` deploys anyway) |
+| `deploy --generated` | use the generated Dockerfile instead of the project's own |
 
-With no command it prints `Tell Cohostly how you start your app, for example: cohostly capture -- npm start`. Exit code 1 when a problem blocks (nothing was uploaded). What the problems mean: `capture.md`.
+What the folder holds and how to change the build: `snapshot.md`.
 
 ```bash
 cohostly pack [dir] --out app.cohostly [--no-secrets] [--env-file f] [--expires 7d] [--account id]
@@ -64,7 +64,7 @@ cohostly inspect app.cohostly            # settings, sources, expiry, secret nam
 cohostly deploy app.cohostly [--project name]
 ```
 
-`pack` seals a folder you set up yourself; it reads `cohostly.json` (or `manifest.json`) and takes secret values only from the file named by `--env-file`. Sealing is not end-to-end encryption: see `capture.md`.
+`pack` seals a folder: a snapshot folder if there is one (its settings and Dockerfile), else the project's `cohostly.json` (or `manifest.json`). It takes secret values only from the file named by `--env-file`. Sealing is not end-to-end encryption: see `snapshot.md`.
 
 ## Check settings without deploying
 

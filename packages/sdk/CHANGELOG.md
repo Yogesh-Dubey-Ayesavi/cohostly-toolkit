@@ -9,7 +9,7 @@ All notable changes to `@cohostly/sdk`. Versions follow semver; while the major 
 - **Connection calls no longer fail with `path_refused`.** `platform.connections.<name>.get({ path })` (and `post`, `put`, `patch`, `delete`) percent-encoded every `/` in the provider path, so `v4/spreadsheets/ID` went out as `v4%2Fspreadsheets%2FID` and the platform refused it ("The path has an encoded dot, slash, backslash or percent sign"). The path now keeps its slashes and any `?query`, and each segment is encoded. Only a connection's `{path}` is treated this way; every other path parameter is still fully encoded.
   If you added a workaround that decodes the path before sending (a custom `fetch` that undoes the encoding), you can remove it. Leaving it in does no harm.
 - **The context-verification middleware now says why it refused a request.** When `middleware()` answers 401 "The platform's context for this request could not be verified", the reason (wrong host, expired token, keys not reachable) is written to the app's log on a line starting `[platform] context not verified:`. The visitor still sees only the generic message.
-  This pairs with a platform change: the proxy now sends `X-Forwarded-Host`, so the token's audience is checked against the address the visitor used. Before it, signed-in requests to apps on the E2B provider could not verify.
+  This pairs with a platform change: the proxy now sends `X-Forwarded-Host`, so the token's audience is checked against the address the visitor used. Before it, signed-in requests to apps on the new hosting provider could not verify.
 
 ### Added
 

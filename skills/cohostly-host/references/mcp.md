@@ -28,7 +28,7 @@ Inputs (send exactly one of the code inputs):
 | `upload_id` | the project is too big. Get it from `get_upload_url` first. |
 | `source_url` | the archive is at a public `https` address. |
 
-A sealed `.cohostly` file is sent the same way (`get_upload_url`, upload, `deploy` with `upload_id`): its own settings and secrets are used. See `capture.md`.
+A sealed `.cohostly` file is sent the same way (`get_upload_url`, upload, `deploy` with `upload_id`): its own settings and secrets are used. See `snapshot.md`.
 
 Other inputs: `project` (required, lowercase letters, numbers and dashes, it becomes the address), `manifest` (text of a `cohostly.json`), `confirm_token`, `skip_confirmation`.
 
