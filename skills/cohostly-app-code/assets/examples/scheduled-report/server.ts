@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { type Response } from 'express'
 import platform from './platform.gen.js' // generated: run `npm run types`
 
 const app = express()
@@ -7,8 +7,8 @@ const app = express()
 // with the platform, which wakes the app when it is due. Define schedules while the app starts.
 platform.cron.schedule('every weekday at 9:00', buildReport, { name: 'daily-report', timeZone: 'Asia/Kolkata', retries: 2 })
 
-async function buildReport(run) {
-  // Delivery is at least once, so a run can arrive twice. The run id is the key: the second insert is skipped.
+async function buildReport(run: { id: string; attempt: number }) {
+  // Delivery is at least once, so a run can arrive twice. The run id is the key: a second delivery finds the row and stops.
   const seen = await platform.data.$app.report_runs.findMany({ where: { run_id: run.id }, take: 1 })
   if (seen.length) return
   // ... build and send the report here ...
@@ -18,5 +18,5 @@ async function buildReport(run) {
 // Where the platform calls in (POST /__platform/jobs/<name>). Only the platform's scheduler can reach it.
 app.use(platform.cron.express())
 
-app.get('/', (_req, res) => res.send('scheduled-report is running'))
-app.listen(process.env.PORT || 3000)
+app.get('/', (_req, res: Response) => { res.send('scheduled-report is running') })
+app.listen(Number(process.env.PORT) || 3000)

@@ -1,10 +1,10 @@
-import express from 'express'
+import express, { type Request, type Response } from 'express'
 import platform from './platform.gen.js' // generated: run `npm run types`
 
 const app = express()
-const done = new Set() // approval ids already acted on. In a real app keep these in the database: a restart empties memory.
+const done = new Set<string>() // approval ids already acted on. In a real app keep these in the database: a restart empties memory.
 
-async function purgeOldOrders(approvalId) {
+async function purgeOldOrders(approvalId: string) {
   if (done.has(approvalId)) return // the callback can arrive more than once: acting twice must be harmless
   done.add(approvalId)
   // ... delete the rows the approver agreed to here ...
@@ -19,7 +19,7 @@ app.post('/__platform/hooks/approvals/decision', platform.approvals.callback({
 }).express)
 
 // Ask first, act later. The summary is exactly what the approver reads, so it says what will happen.
-app.post('/purge', async (_req, res) => {
+app.post('/purge', async (_req: Request, res: Response) => {
   const approval = await platform.approvals.request({
     summary: 'Delete all orders older than 90 days',
     details: { table: 'orders', older_than_days: 90 },
@@ -30,4 +30,4 @@ app.post('/purge', async (_req, res) => {
   res.status(202).json({ approval_id: approval.id, status: approval.status })
 })
 
-app.listen(process.env.PORT || 3000)
+app.listen(Number(process.env.PORT) || 3000)
