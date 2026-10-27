@@ -1,6 +1,6 @@
 ---
 name: cohostly-host
-description: Put an app online and manage it on Cohostly, the platform that turns code into a shareable web address. Use this whenever the person wants to deploy, publish, host or "put it on cohostly", check or write a manifest.json, see or change who can open a project (public, link, account, private), share a project with someone by email, roll back or promote a version, set a secret for a project, or find out why a deploy failed. Works through the MCP tools (deploy, share, set_visibility and the rest), the `platform` CLI, or the API. Do NOT use this for writing the app's own code that reads visitor context, calls the AI gateway or uses platform data; that is `cohostly-app-code`.
+description: Put an app online and manage it on Cohostly, the platform that turns code into a shareable web address. Use this whenever the person wants to deploy, publish, host or "put it on cohostly", check or write a cohostly.json settings file, see or change who can open a project (public, link, account, private), share a project with someone by email, roll back or promote a version, set a secret for a project, or find out why a deploy failed. Also use it for "deploy what I'm running", "deploy this Express/Flask/Next app" and anything about `cohostly capture`. Works through the MCP tools (deploy, share, set_visibility and the rest), the `cohostly` CLI (also called `platform`), or the API. Do NOT use this for writing the app's own code that reads visitor context, calls the AI gateway or uses platform data; that is `cohostly-app-code`.
 ---
 
 # Hosting on Cohostly
@@ -9,24 +9,35 @@ Cohostly takes a project's code, builds it and gives it a web address. Your job 
 
 ## Pick the surface first
 
-1. **MCP tools are available** (tools named like `deploy`, `share`, `set_visibility`): use them. This is the default for an agent.
-2. **Only a shell is available:** use the `platform` CLI. Read `references/cli.md`.
-3. **Automation or CI with a key:** use the CLI with `platform login --token plk_...` from a secret store. Never print the key.
+1. **A shell, and the app runs on this machine:** use the `cohostly` CLI and `capture` (below). It sees what the app really does, so there is nothing to guess.
+2. **MCP tools only** (tools named like `deploy`, `share`, `set_visibility`): use them. Railpack plans the build from the files.
+3. **Automation or CI with a key:** use the CLI with `cohostly login --token plk_...` from a secret store. Never print the key.
 
-If the person is not signed in, MCP asks them to sign in once through the browser. The CLI runs `platform login`. Read `references/auth.md` before sharing anything, since sign-in decides who can do what.
+`cohostly` and `platform` are the same program. If the person is not signed in, MCP asks them to sign in once through the browser and the CLI runs `cohostly login`. Read `references/auth.md` before sharing anything, since sign-in decides who can do what.
 
 ## The deploy flow
 
-Always in this order:
+**With a shell and a runnable app, capture first.** Start the app the way it runs in production (the `start` script, `python app.py`, `gunicorn app:app`), not a dev server with hot reload, because a dev server records the wrong command and port. Then run `cohostly capture --json -- <that command>` and read `problems`. Fix each blocking one in the code or the settings, then run capture again. Capture uploads only when nothing blocks, and it sends secret values privately (never to disk, never in output). Read `references/capture.md` for what each problem means and how to answer it.
 
-1. **Check the settings** (optional but recommended before a first deploy): `check_manifest` with the manifest text, or `platform manifest check`. It says what each setting will be and where it came from.
-2. **Deploy without a manifest first.** The platform reads the code and works out the app type, port and start command. Without a `manifest.json` it does **not** go live. It returns a draft and a `confirm_token`.
-3. **Show the person the draft.** Each setting comes with a reason. Ask them to accept or change it. This is the step that stops a surprise bill or an open door.
-4. **Confirm.** Call `deploy` again with the same code and the `confirm_token`. Add `manifest` if they changed something. Use `skip_confirmation: true` only when the person has already said to go ahead without reviewing.
-5. **Read the result.** The reply gives the address and the stages it passed through. If it failed, the reply names the stage, the cause and the fix. Report those in plain words; do not paste the raw log unless they ask.
-6. **Decide visibility** with `set_visibility`. Do not leave it to the default without telling them what it is (see `references/auth.md`).
+**With MCP tools only,** deploy and let Railpack plan:
 
-Code bigger than about the paste limit goes through `get_upload_url`, then a plain upload, then `deploy` with the `upload_id`. The reply tells you the exact command.
+1. **Check the settings** (optional before a first deploy): `check_manifest` with the text of the settings, or `cohostly manifest check`. It says what each setting will be and where it came from.
+2. **Deploy.** With no `cohostly.json`, the platform plans the build from the files. If every setting was read straight from them and none is risky, it goes live. Otherwise it does **not** go live: it returns a draft and a `confirm_token`.
+3. **Show the person the draft.** Each setting has a reason. Ask them to accept or change it. This step stops a surprise bill or an open door.
+4. **Confirm.** Call `deploy` again with the same code and the `confirm_token`. Add `manifest` if they changed something. Use `skip_confirmation: true` only when the person already said to go ahead without reviewing.
+5. **Read the result.** The reply gives the address and the stages it passed through. If it failed, its first line is `code: <code>`, then the cause and the fix. Act on the code (see `references/troubleshooting.md`) and report in plain words; do not paste the raw log unless asked.
+6. **Decide visibility** with `set_visibility`. Do not leave it at the default without telling them what it is (see `references/auth.md`).
+
+Code bigger than the paste limit goes through `get_upload_url`, then a plain upload, then `deploy` with the `upload_id`. A sealed `.cohostly` file travels the same way (see `references/capture.md`).
+
+### Rules for deploying
+
+- **Never write a Dockerfile just to deploy.** Railpack and the fixed recipes build Node, Python, Go and static sites; a Dockerfile you invent pins a build nobody reviewed. The person's own Dockerfile is respected.
+- **Keep the lockfile** (`package-lock.json`, `pnpm-lock.yaml`, `requirements.txt`). Without it the build installs different versions than the ones that ran on this machine.
+- **The app reads `PORT` and listens on `0.0.0.0`.** Online, the platform picks the port and reaches the app from outside; an app bound to `127.0.0.1` is unreachable (`binds_loopback`).
+- **Never paste a secret value** into the chat or a file. Names go in `env.secrets`; values go through capture, `request_secret` or `cohostly secrets set`.
+- **After a failure, fix the cause named by `code` and redeploy at most twice.** Past that you are guessing, and every try costs a build. Stop, then tell the person what you tried and what is still wrong.
+- **Fix a wrong detected value by writing only that field** into `cohostly.json` (or its flag). Copying every detected value pins them all and switches auto-detection off. See `references/capture.md`.
 
 ## Operate a live project
 
@@ -60,8 +71,9 @@ Never delete a project from here. It is not an MCP tool; deletion is a dashboard
 Read only the one you need:
 
 - `references/mcp.md`: every MCP tool, what it takes, what it returns, and the order to use them.
-- `references/cli.md`: the `platform` commands and flags.
-- `references/manifest.md`: `manifest.json`, its sections, defaults and warnings.
+- `references/cli.md`: the `cohostly` commands and flags.
+- `references/capture.md`: `cohostly capture`: what it records, how to answer each problem, overrides, and sealed `.cohostly` files.
+- `references/manifest.md`: `cohostly.json` (and the older `manifest.json`), its sections, defaults and warnings.
 - `references/auth.md`: sign-in for people, keys for machines, visibility levels, roles, and how visitors are checked.
 - `references/secrets-and-tokens.md`: secrets, dev tokens, and the running app's token.
-- `references/troubleshooting.md`: reading deploy failures and common fixes.
+- `references/troubleshooting.md`: reading deploy failures, one row per `code`, and common fixes.

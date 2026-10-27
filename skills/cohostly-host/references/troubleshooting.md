@@ -6,6 +6,7 @@ Read this when a deploy fails, the app does not open, or a person says "it's bro
 
 A failed deploy reply has these parts (MCP and CLI both):
 
+- **Code:** a stable name for what went wrong, for example `build_failed_dependency`. It is the first line of an MCP failure (`code: ...`), a `Code:` line in the CLI and `code` in `--json`. Act on the code; the sentences below explain it to the person. The table further down says what to do for each.
 - **What failed:** the error line, for example "Deploy failed".
 - **Which stage:** `uploading`, `building`, `starting` or `live`. "It stopped while: building" tells you the code is the likely cause; "starting" points at the start command or the port.
 - **Cause and fix:** plain sentences from the classifier, for example a missing dependency, a wrong Python or Node version, no start command, or a port not read from the environment.
@@ -21,6 +22,30 @@ Report the cause and fix first. Quote the log only if the cause is unclear.
 | building | A dependency is missing from the lock or requirements file, or the language version is unsupported | Ask the person to fix the dependency file; do not edit their code without asking. |
 | starting | No start command was found, or the app did not listen on the port it was given | The app must listen on the port the health check uses (`health.port` in the manifest). Add or fix the start command in the manifest's `runtime.entrypoint`. Reading `PORT` from the environment is the usual approach; see `cohostly-app-code/references/environment.md`. |
 | live, but the page is an error | The app crashed on the first request | Check the code path that serves `/`. There are no logs tool yet, so run the app locally with `platform dev` or `start_dev_session` to see the error. |
+
+## What each code means
+
+| Code | Meaning | What to do |
+| --- | --- | --- |
+| `unsupported_runtime` | The project is a kind the platform does not run (PHP, Ruby, Rust and others). | Tell the person plainly. Node, Python, Go and plain websites run today. Do not try to convert the app. |
+| `not_detected` | Railpack found nothing to build, or the project does not say how to start. | Check the folder holds a `package.json`, `requirements.txt`, `go.mod` or `index.html`; otherwise set `runtime.entrypoint` in `cohostly.json`. |
+| `unsupported_version` | The Node, Python or Go version is not one the platform builds. | Use Node 16, 18 or 20 to 24, Python 3.9 to 3.13, Go 1.18 to 1.29 (`engines` in `package.json`, or the version flag). |
+| `unsupported_build` | The build step is not one the platform runs. | Use `npm run <script>`, `pnpm run <script>`, `yarn <script>` or `npx next build`. |
+| `build_failed_dependency` | A package could not be installed (missing, wrong version, conflict). | Fix the name or version in the dependency file; ask before editing the person's file. |
+| `build_failed_command` | The build command, or the compile, failed. | Run the same command locally, fix the error it shows, redeploy. |
+| `build_failed` | The build failed and the cause is not recognised. | Read the log tail the reply includes; it usually names the problem. |
+| `build_out_of_memory` | The build needs more memory than builds get. | Nothing is wrong with the code. Build locally and upload the result, or make the build lighter. A bigger app size does not help. |
+| `missing_secret` | A declared secret has no value. | `request_secret` and the secure link; see `secrets-and-tokens.md`. |
+| `port_mismatch` | The app started but nothing listened on the expected port. | Read `PORT`, or set `health.port`. |
+| `binds_loopback` | The app only listens on `127.0.0.1`. | Listen on `0.0.0.0`. |
+| `start_crashed` | The app exited right after starting. | Read the output in the reply, fix that error, redeploy. |
+| `upload_too_large` | The upload is over the limit. | Leave out build output and large data files; for archives that are just big, `get_upload_url`. |
+| `provider_busy` | The hosting service is throttling or full. | Not the app's fault. Wait the `Retry-After` time and try again once; do not change the code. |
+| `snapshot_invalid`, `snapshot_expired`, `snapshot_wrong_account`, `snapshot_tampered`, `snapshot_unavailable` | A `.cohostly` file could not be opened. | Make a fresh one (`capture.md`). Never edit one by hand. |
+
+Capture's own checks (`local_service`, `no_http_port`, `secret_in_command` and the rest) use the same names and are in `capture.md`.
+
+**How many tries.** Fix the cause the code names, redeploy, and stop after two tries. If it still fails, tell the person what you changed, what the platform said last and what you think is still wrong. A third guess costs another build and usually repeats the second.
 
 ## The app opens for the owner but not for others
 

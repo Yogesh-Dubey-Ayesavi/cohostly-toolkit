@@ -8,7 +8,7 @@ The server is at `https://api.<platform-domain>/mcp` (Streamable HTTP, stateless
 
 ```
 check_manifest (optional)   -> problems, warnings, settings
-deploy (code, no manifest)  -> needs_confirmation + confirm_token + draft
+deploy (code, no settings)  -> Live, or needs_confirmation + confirm_token + draft
   ... show the draft to the person, collect edits ...
 deploy (same code, confirm_token [, manifest]) -> Live: <url>
 describe_project            -> confirm address, visibility, live version
@@ -28,13 +28,15 @@ Inputs (send exactly one of the code inputs):
 | `upload_id` | the project is too big. Get it from `get_upload_url` first. |
 | `source_url` | the archive is at a public `https` address. |
 
-Other inputs: `project` (required, lowercase letters, numbers and dashes, it becomes the address), `manifest` (text of a `manifest.json`), `confirm_token`, `skip_confirmation`.
+A sealed `.cohostly` file is sent the same way (`get_upload_url`, upload, `deploy` with `upload_id`): its own settings and secrets are used. See `capture.md`.
+
+Other inputs: `project` (required, lowercase letters, numbers and dashes, it becomes the address), `manifest` (text of a `cohostly.json`), `confirm_token`, `skip_confirmation`.
 
 Replies:
 
-- **No manifest, first call:** `status: needs_confirmation`, a `confirm_token`, `expires_in_s`, and a `draft` of the settings with reasons. Nothing is online yet.
+- **No settings file, first call:** Railpack plans the build. When every setting was read from the files and none is risky, it goes live and the reply lists the settings with their `source`. Otherwise `status: needs_confirmation`, a `confirm_token`, `expires_in_s`, and a `draft` of the settings with reasons. Nothing is online yet.
 - **Confirmed:** `Live: <url>` with `stages` (uploading, building, starting, live).
-- **Failed:** the text names the stage it stopped at, the cause, and what to do. Pass the text on.
+- **Failed:** the first line is `code: <code>`, so you can act without reading prose; then the stage it stopped at, the cause, and what to do. The codes and their fixes are in `troubleshooting.md`. Pass the plain sentences on to the person.
 
 Rules:
 

@@ -1,6 +1,6 @@
-# The `platform` CLI
+# The `cohostly` CLI
 
-Read this when you have a shell but no MCP tools, or when the person wants to run things themselves. Commands and flags below are the ones in `packages/cli/src/index.ts` and `commands/`. Run `platform` with no arguments to see the current help.
+Read this when you have a shell but no MCP tools, or when the person wants to run things themselves. `cohostly` and `platform` are the same program; the examples use `platform` where they always have, and either name works. Commands and flags below are the ones in `packages/cli/src/index.ts` and `commands/`. Run `cohostly` with no arguments to see the current help.
 
 ## Sign in first
 
@@ -18,7 +18,7 @@ Never type a key as a command argument in a shared shell history if you can avoi
 ```bash
 platform deploy [dir] --project <name>            # shows the settings it worked out and asks first (in a terminal)
 platform deploy [dir] --project <name> --yes      # accept the settings without asking
-platform deploy [dir] --project <name> --manifest manifest.json
+platform deploy [dir] --project <name> --manifest cohostly.json
 platform deploy [dir] --project <name> --set visibility=private   # one setting, repeatable
 platform deploy [dir] --project <name> --show-settings
 platform deploy [dir] --project <name> --draft    # print the draft, do not deploy
@@ -28,11 +28,43 @@ platform deploy [dir] --project <name> --draft    # print the draft, do not depl
 - Without a terminal (an agent or CI), it does not ask. Use `--draft` first, read the draft, then deploy with `--manifest` or `--yes`. Only use `--yes` when the person has agreed to the settings.
 - `--skip-types-check` skips checking code against the platform contract. Do not use it to hide a real error.
 
+Setting flags, on `deploy` and `capture`: `--language`, `--node-version` / `--python-version` / `--go-version` (all set `runtime.version`), `--root`, `--install` (the install command), `--build`, `--start`, `--port`, `--package-manager`. Each is a shortcut for `--set <path>=<value>`. A value set this way is the person's own word and shows as `you`; everything not set is still detected.
+
 Start a small new project from a template:
 
 ```bash
 platform new <static|flask|fastapi|express|go|nextjs> [folder]
 ```
+
+## Capture: deploy what already runs
+
+```bash
+cohostly capture [options] -- <start command ...>
+cohostly capture [options] --command "<shell line>"
+```
+
+| Option | Meaning |
+| --- | --- |
+| `--project <name>` | project name; defaults to the folder name, lowercased with dashes |
+| `--dir <path>` | the app folder, default `.` |
+| `--probe-path <path>` | the page capture asks for, default `/` |
+| `--timeout <seconds>` | how long to wait for the app to listen, default 30, at most 300 |
+| `--json` | one result for agents: `ok`, `stage`, `url`, `problems`, `settings` |
+| `--no-deploy` | check and print what would be deployed; upload nothing |
+| `--save` / `--force` | also write `cohostly.json` (refuses to overwrite one without `--force`) |
+| `--allow-local-urls` | deploy even when a variable points at localhost |
+| `--out <file>` | write a sealed `.cohostly` file instead of deploying; also `--no-secrets`, `--expires <1d..30d>`, `--account <id>` |
+| setting flags, `--set` | override one detected value (see above) |
+
+With no command it prints `Tell Cohostly how you start your app, for example: cohostly capture -- npm start`. Exit code 1 when a problem blocks (nothing was uploaded). What the problems mean: `capture.md`.
+
+```bash
+cohostly pack [dir] --out app.cohostly [--no-secrets] [--env-file f] [--expires 7d] [--account id]
+cohostly inspect app.cohostly            # settings, sources, expiry, secret names; opens nothing
+cohostly deploy app.cohostly [--project name]
+```
+
+`pack` seals a folder you set up yourself; it reads `cohostly.json` (or `manifest.json`) and takes secret values only from the file named by `--env-file`. Sealing is not end-to-end encryption: see `capture.md`.
 
 ## Check settings without deploying
 
