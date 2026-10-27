@@ -35,6 +35,12 @@ The image is built on a machine of the same size the app then runs on, so a heav
 
 To change it, edit `compute` in `.cohostly/cohostly.json` (`{ "vcpu": 2, "memory": 2048 }`) or deploy with `--set compute.memory=2048`. A size you set by hand is kept when snapshot runs again. A build that is killed partway through an install or build step is usually out of memory: raise the size one step.
 
+## Values the build needs
+
+Some frameworks copy a value into the files the build makes (a browser bundle that holds a public URL or key). That value must exist while the app is built, not only when it starts, or the built app behaves as if it were unset (a login button that never appears is the usual sign). Snapshot finds these without knowing any framework: it builds a scratch copy of the project once with a unique marker as the value of every variable the app reads, and searches the files the build wrote for the markers. If the build rejects a marker it builds again with your own values. The project folder is not touched.
+
+The variables it finds get a bare `ARG NAME` line before the build step in the Dockerfile (no value in the file) and a `NOTE`. On deploy the platform turns each `ARG NAME` into `ENV NAME="value"` using the sealed values, for the names the Dockerfile asks for and no others. A Dockerfile you write yourself works the same way: add `ARG NAME` before the step that needs it. Changing such a value means deploying again. A value the build reads without writing it anywhere leaves no trace and is not found.
+
 ## When `check` fails
 
 It prints the failing step and the log with secret values removed, then what it observed (a module the app could not import, apt packages that provide files a command looked for), or `cannot decide` when nothing explains it. Fix the Dockerfile by hand using that evidence and run `check` again. Do not guess a package name; ask the person.
