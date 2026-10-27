@@ -1,5 +1,7 @@
 import { handleDeploy } from './commands/deploy.js';
-import { handleCapture } from './commands/capture.js';
+import * as path from 'node:path';
+import { deployFromSnapshot, runCaptureTool } from './commands/folder.js';
+import { hasSnapshot } from './snapshot-folder.js';
 import { handlePack, handleInspect, deploySnapshotFile } from './commands/snapshot.js';
 import { handleVersions } from './commands/versions.js';
 import { handlePromote } from './commands/promote.js';
@@ -48,7 +50,9 @@ export async function main() {
       break;
     case 'deploy': {
       const snap = args.slice(1).find((a) => a.endsWith('.cohostly') && !a.startsWith('--'));
-      if (snap) await deploySnapshotFile(snap, args.slice(1), API_URL); else await handleDeploy(args.slice(1), API_URL);
+      const folder = path.resolve(args.slice(1).find((a, i) => !a.startsWith('--') && args[i] !== '--project') ?? '.');
+      if (!snap && hasSnapshot(folder) && !args.includes('--manifest')) await deployFromSnapshot(args.slice(1), API_URL);
+      else if (snap) await deploySnapshotFile(snap, args.slice(1), API_URL); else await handleDeploy(args.slice(1), API_URL);
       break;
     }
     case 'pack':
@@ -57,8 +61,11 @@ export async function main() {
     case 'inspect':
       handleInspect(args.slice(1));
       break;
-    case 'capture':
-      await handleCapture(args.slice(1), API_URL);
+    case 'snapshot':
+      await runCaptureTool('snapshot', args.slice(1), API_URL);
+      break;
+    case 'check':
+      await runCaptureTool('check', args.slice(1), API_URL);
       break;
     case 'open':
       await handleOpen(args.slice(1), API_URL);
@@ -150,8 +157,9 @@ Commands:
   login [--token plk_...]                                                          Sign in (opens your browser), or save a key made in the dashboard
   logout / whoami                                                                  Forget the saved key / show who you are signed in as
   deploy [dir] [--project name] [--manifest file] [--set setting=value] [--yes]    Deploy an application. With no manifest, at a terminal it shows the settings it worked out and asks first; --yes accepts them without asking (scripts without --yes keep the standard settings)
-  capture [options] -- <start command ...>                                          Run your app here, see what it needs, and deploy it with no settings written: cohostly capture -- npm start (--no-deploy to only check, --json for agents)
   pack [dir] --out app.cohostly [--no-secrets] [--env-file f] [--expires 7d]          Seal a folder, its settings and (optionally) its secrets into one .cohostly file only your account can deploy
+  snapshot [--expires 30d] -- <start command ...>                                      Run your app here and write a snapshot to .cohostly/: a Dockerfile (the build plan), cohostly.json (settings) and the values it saw. cohostly snapshot -- npm start
+  check [--generated]                                                              Build and start the Dockerfile that would be deployed (yours in ./Dockerfile, else the generated one) and compare it with the app
   inspect app.cohostly                                                             Show a .cohostly file's settings, expiry and secret names without opening anything
   new <template> [folder]                                                          Start a small project (static, flask, fastapi, express, go, nextjs) you can deploy as is
   open [project]                                                                   Open the project's web address in your browser

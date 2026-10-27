@@ -1,13 +1,13 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { createRequire } from 'node:module';
 import { findManifestFile } from '../manifest-file.js';
 import { parseEnvFile } from '../env-files.js';
 import { RAILPACK } from '../tools.js';
 import { fetchSnapshotKey, inspectSnapshot, parseExpires, sealSnapshot } from '../snapshot/seal.js';
 import { packFolder, postDeploy, printBuildSettings, reportOutcome } from './deploy.js';
+import { hasSnapshot, readSnapshot, stageSource } from '../snapshot-folder.js';
 
-// `cohostly pack`, `cohostly inspect`, `cohostly deploy app.cohostly`, and the sealing step `cohostly capture --out` uses (Phase 25g part 3).
+// `cohostly pack`, `cohostly inspect`, `cohostly deploy app.cohostly`, and the sealing step the sealed `.cohostly` file (Phase 25g part 3).
 
 const BUILD = ['runtime.language', 'runtime.version', 'runtime.root', 'runtime.package_manager', 'runtime.install_command', 'runtime.build', 'runtime.entrypoint', 'runtime.system_packages', 'health.port'];
 const get = (o: any, p: string) => p.split('.').reduce((x, k) => (x && typeof x === 'object' ? x[k] : undefined), o);
@@ -15,7 +15,6 @@ const get = (o: any, p: string) => p.split('.').reduce((x, k) => (x && typeof x 
 function toolVersions(): Record<string, string> {
   const out: Record<string, string> = { railpack: RAILPACK.version };
   try { out.cli = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version; } catch { /* unknown */ }
-  try { out.capture = JSON.parse(fs.readFileSync(path.join(path.dirname(createRequire(import.meta.url).resolve('@cohostly/capture')), '..', 'package.json'), 'utf8')).version; } catch { /* unknown */ }
   return out;
 }
 
@@ -31,7 +30,7 @@ export async function whoAmI(apiUrl: string, account?: string): Promise<{ userId
   return { userId: me.id, accountId };
 }
 
-export interface WriteOptions { dir: string; out: string; settings: Record<string, any>; sources: Record<string, string>; secrets?: Record<string, string>; expires?: string; account?: string; apiUrl: string }
+export interface WriteOptions { dir: string; out: string; /** The app's files as a .tar.gz; default: the folder as it is. */ source?: Buffer; settings: Record<string, any>; sources: Record<string, string>; secrets?: Record<string, string>; expires?: string; account?: string; apiUrl: string }
 
 /** Packs the folder (no .env files, no node_modules, no .git), seals it and writes the file. Returns what was written, for the summary line. */
 export async function writeSnapshotFile(o: WriteOptions): Promise<{ bytes: number; secretNames: string[]; expiresAt: Date }> {
@@ -39,7 +38,7 @@ export async function writeSnapshotFile(o: WriteOptions): Promise<{ bytes: numbe
   const expiresAt = new Date(now.getTime() + parseExpires(o.expires));
   const key = await fetchSnapshotKey(o.apiUrl);
   const me = await whoAmI(o.apiUrl, o.account);
-  const source = packFolder(o.dir, { skipEnvLike: true });
+  const source = o.source ?? packFolder(o.dir, { skipEnvLike: true });
   const file = sealSnapshot({ key, accountId: me.accountId, createdBy: me.userId, expiresAt, now, settings: o.settings, sources: o.sources, tools: toolVersions(), source, secrets: o.secrets });
   fs.writeFileSync(o.out, file, { mode: 0o600 });
   return { bytes: file.length, secretNames: Object.keys(o.secrets ?? {}).sort(), expiresAt };
@@ -57,11 +56,14 @@ export async function handlePack(args: string[], apiUrl: string): Promise<void> 
   if (!fs.existsSync(dir)) { console.error(`Error: directory not found: ${dir}`); process.exit(1); }
   try {
     const found = findManifestFile(dir);
-    let settings: Record<string, any> = {};
+    // A snapshot folder (cohostly snapshot) is what gets packed when the project has no settings file of its own: its settings, and its Dockerfile in the files.
+    const snap = !found && hasSnapshot(dir) ? readSnapshot(dir) : undefined;
+    let settings: Record<string, any> = snap ? { ...snap.settings } : {};
     if (found) { try { settings = JSON.parse(found.text || '{}'); } catch { throw new Error(`${found.file} is not valid JSON.`); } if (found.notice) console.log(found.notice); }
     const sources = (settings._sources && typeof settings._sources === 'object' ? settings._sources : {}) as Record<string, string>;
     delete settings._sources;
-    let secrets: Record<string, string> | undefined;
+    let secrets: Record<string, string> | undefined = snap && Object.keys(snap.values).length ? snap.values : undefined;
+    if (snap?.sealedEnv && !secrets) console.log('The values in .cohostly/env.enc are not in this file (they are sealed for deploying from the folder). Add them with --env-file if the file should carry them.');
     const envFile = take(args, '--env-file');
     if (envFile && !args.includes('--no-secrets')) {
       const values = parseEnvFile(fs.readFileSync(path.resolve(process.cwd(), envFile), 'utf8'));
@@ -70,7 +72,7 @@ export async function handlePack(args: string[], apiUrl: string): Promise<void> 
       const missing = declared.filter((n) => !(n in secrets!));
       if (missing.length) console.log(`Not in ${envFile}, so not in the file: ${missing.join(', ')}.`);
     }
-    const r = await writeSnapshotFile({ dir, out, settings, sources, secrets: args.includes('--no-secrets') ? undefined : secrets, expires: take(args, '--expires'), account: take(args, '--account'), apiUrl });
+    const r = await writeSnapshotFile({ dir, out, source: snap ? stageSource(dir, snap) : undefined, settings, sources, secrets: args.includes('--no-secrets') ? undefined : secrets, expires: take(args, '--expires'), account: take(args, '--account'), apiUrl });
     console.log(`Wrote ${out} (${(r.bytes / 1024).toFixed(0)} KB). It expires ${r.expiresAt.toISOString().slice(0, 10)}. ${r.secretNames.length ? `Sealed secrets: ${r.secretNames.join(', ')}.` : 'No secrets inside.'}`);
   } catch (e: any) { console.error(e.message); process.exit(1); }
 }
@@ -84,7 +86,7 @@ export function handleInspect(args: string[]): void {
     const m = i.meta;
     console.log(`${file}`);
     console.log(`  made      ${m.created_at}`);
-    console.log(`  expires   ${m.expires_at}${i.expired ? '  (EXPIRED: make a new one with cohostly capture --out)' : ''}`);
+    console.log(`  expires   ${m.expires_at}${i.expired ? '  (EXPIRED: make a new one with cohostly pack --out)' : ''}`);
     console.log(`  account   ${m.account_id}  (only people in this account can deploy it)`);
     console.log(`  secrets   ${i.hasSecrets ? `sealed inside: ${i.secretNames.join(', ') || '(none declared)'}` : `not included${i.secretNames.length ? `; the settings name ${i.secretNames.join(', ')}, to be set under Secrets` : ''}`}`);
     console.log(`  tools     ${Object.entries(m.tools ?? {}).map(([k, v]) => `${k} ${v}`).join(', ') || 'unknown'}`);

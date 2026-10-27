@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { bundledTool } from './vendor.js';
 
 // Keep the version equal to RAILPACK_VERSION in packages/image-builder/src/railpack.ts and the planner's Dockerfile.
 // URLs and SHA-256 digests are the ones the v0.43.0 release page lists (https://github.com/railwayapp/railpack/releases/tag/v0.43.0).
@@ -49,6 +50,9 @@ export async function ensureRailpack(opts: EnsureOptions = {}): Promise<string> 
     log('using your own Railpack build')
     return own
   }
+
+  const bundled = bundledTool('railpack', { platform, arch: opts.arch });
+  if (bundled) return bundled
 
   const dest = join(opts.toolsDir ?? join(homedir(), '.cohostly', 'tools'), `railpack-${table.version}`, 'railpack')
   if (existsSync(dest)) return dest

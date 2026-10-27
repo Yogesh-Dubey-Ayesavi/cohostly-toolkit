@@ -7,7 +7,7 @@ import { gunzipSync, gzipSync } from 'node:zlib';
 // Phase 25g part 3: sealing a project into a `.cohostly` file. Node's built-in crypto only.
 // The app's files and the secret values are encrypted with a random AES-256-GCM key; that key is wrapped with Cohostly's public key (RSA-OAEP, SHA-256) and only the
 // platform can open it. The settings stay readable on purpose, so a person or an agent can see what will be built. Sealing protects the file wherever it travels or sits
-// outside the platform; Cohostly and E2B still see the code while building it. This is not end-to-end encryption.
+// outside the platform; Cohostly and its hosting infrastructure still see the code while building it. This is not end-to-end encryption.
 
 export const SNAPSHOT_FORMAT = 'cohostly-snapshot/1';
 const ENTRIES = ['snapshot.json', 'cohostly.json', 'source.enc', 'secrets.enc'];

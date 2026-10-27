@@ -39,15 +39,3 @@ test('platform deploy: a reply with no code prints no Code line', async () => {
   const s = await api({ error: 'Deployment failed', details: 'Something odd happened.' }, 500);
   try { const r = await run(['deploy', '--yes', '--skip-types-check', '.'], app(), s.url); assert.equal(r.code, 1); assert.doesNotMatch(r.out, /Code:/); assert.match(r.out, /Something odd happened/); } finally { s.close(); }
 });
-
-test('cohostly capture --json: the server\'s code is in the result, in the same list as the local problems', { skip: process.env.COHOSTLY_RAILPACK || process.env.RAILPACK_BIN ? false : 'SKIPPED: set RAILPACK_BIN to a pinned Railpack' }, async () => {
-  const s = await api({ error: 'Deployment failed', code: 'provider_busy', failed_stage: 'building', details: 'The hosting service is busy.', retry_after: 30 }, 503);
-  try {
-    const r = await new Promise<{ code: number | null; out: string }>((resolve) => {
-      const c = spawn(process.execPath, [CLI, 'capture', '--json', '--', 'node', 'server.js'], { cwd: app(), env: { PATH: process.env.PATH, HOME: mkdtempSync(join(tmpdir(), 'fchome-')), API_URL: s.url, COHOSTLY_RAILPACK: process.env.COHOSTLY_RAILPACK || process.env.RAILPACK_BIN } as any });
-      let out = ''; c.stdout.on('data', (d) => (out += d)); c.stderr.on('data', (d) => (out += d)); c.on('close', (code) => resolve({ code, out }));
-    });
-    const j = JSON.parse(r.out); assert.equal(r.code, 1); assert.equal(j.ok, false); assert.equal(j.stage, 'build');
-    assert.ok(j.problems.some((p: any) => p.code === 'provider_busy' && p.blocking));
-  } finally { s.close(); }
-});

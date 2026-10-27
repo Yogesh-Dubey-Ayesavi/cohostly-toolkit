@@ -3,7 +3,7 @@ import * as assert from 'node:assert';
 import { spawn, spawnSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import { createServer } from 'node:http';
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -92,17 +92,15 @@ test('cohostly deploy app.cohostly sends the file as it is, with a project name 
   } finally { s.close(); }
 });
 
-test('cohostly capture --out seals what capture saw instead of deploying; nothing is uploaded', { skip: rp ? false : 'SKIPPED: set COHOSTLY_RAILPACK to a pinned Railpack' }, async () => {
-  const s = await api(); const dir = mkdtempSync(join(tmpdir(), 'snapcap-')); cpSync(join(FIXTURES, 'node-cjs'), dir, { recursive: true }); writeFileSync(join(dir, '.env'), `API_KEY=${CANARY}\n`);
-  const out = join(mkdtempSync(join(tmpdir(), 'snout-')), 'cap.cohostly');
+test('cohostly pack seals a snapshot folder: its settings are readable and its Dockerfile is in the sealed files', async () => {
+  const s = await api(); const dir = mkdtempSync(join(tmpdir(), 'snapfolder-')); writeFileSync(join(dir, 'server.js'), 'console.log(1)');
+  mkdirSync(join(dir, '.cohostly')); writeFileSync(join(dir, '.cohostly', 'cohostly.json'), JSON.stringify({ name: 'folder-app', runtime: { language: 'dockerfile', entrypoint: 'node server.js' }, health: { port: 3000 }, env: { secrets: ['API_KEY'] } }));
+  writeFileSync(join(dir, '.cohostly', 'Dockerfile'), 'FROM node:22-slim\nCOPY . .\n'); writeFileSync(join(dir, '.cohostly', 'env.json'), JSON.stringify({ API_KEY: { value: CANARY, source: 'process' } }));
+  const out = join(mkdtempSync(join(tmpdir(), 'snout-')), 'f.cohostly');
   try {
-    const r = await cli(['capture', '--out', out, '--', 'node', 'server.js'], dir, s.url, { API_KEY: CANARY }); assert.equal(r.code, 0, r.out);
-    assert.match(r.out, /Sealed secrets: API_KEY\./); assert.match(r.out, /Nothing was uploaded\./); assert.ok(!r.out.includes(CANARY));
-    assert.ok(!s.seen.some((x) => x.url === '/v1/deploy'));
-    const file = readFileSync(out); assert.ok(!gunzipSync(file).toString('latin1').includes(CANARY));
-    const i = inspectSnapshot(file); assert.equal(i.settings.runtime.entrypoint, 'node server.js'); assert.equal(i.meta.sources['runtime.entrypoint'], 'capture'); assert.deepEqual(i.secretNames, ['API_KEY']);
-    const none = join(dirname(out), 'none.cohostly');
-    assert.equal((await cli(['capture', '--out', none, '--no-secrets', '--', 'node', 'server.js'], dir, s.url, { API_KEY: CANARY })).code, 0); assert.equal(inspectSnapshot(readFileSync(none)).hasSecrets, false);
+    const r = await cli(['pack', dir, '--out', out], dir, s.url); assert.equal(r.code, 0, r.out); assert.ok(!r.out.includes(CANARY));
+    const i = inspectSnapshot(readFileSync(out)); assert.equal(i.settings.name, 'folder-app'); assert.equal(i.settings.runtime.language, 'dockerfile'); assert.equal(i.hasSecrets, true); assert.deepEqual(i.secretNames, ['API_KEY']);
+    assert.ok(!gunzipSync(readFileSync(out)).toString('latin1').includes(CANARY));
   } finally { s.close(); }
 });
 
