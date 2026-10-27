@@ -6,15 +6,19 @@ import { spawnSync } from 'node:child_process';
 import * as readline from 'node:readline/promises';
 import { takeSetFlags, printSettings } from './manifest.js';
 import { staleTypesMessage } from './types.js';
+import { envForDeploy, ENV_FILES } from '../env-files.js';
 
 const MAX_UPLOAD = 50 * 1024 * 1024; // the API's upload limit
 
-/** Packs the folder into a .tar.gz (without node_modules, .git and similar) so the API can be on another machine. */
-function packFolder(dir: string): Buffer {
+/** Packs the folder into a .tar.gz (without node_modules, .git and similar, and without the .env files at its root, which are sent as secrets instead) so the API can be on another machine. */
+export function packFolder(dir: string): Buffer {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'platform-deploy-'));
   const file = path.join(tmp, 'source.tar.gz');
   try {
-    execFileSync('tar', ['-czf', file, '--exclude=node_modules', '--exclude=.git', '--exclude=.vercel', '--exclude=.next', '--exclude=__pycache__', '--exclude=.DS_Store', '--exclude=._*', '-C', dir, '.'], { stdio: 'pipe', env: { ...process.env, COPYFILE_DISABLE: '1' } });
+    // The env files at the root are left out by naming what goes in (a tar exclude pattern would also match a .env in a subfolder, and differs between bsd and GNU tar).
+    const entries = fs.readdirSync(dir).filter((n) => !(ENV_FILES as readonly string[]).includes(n)).sort();
+    if (!entries.length) throw new Error('there is nothing to deploy here except .env files, and those are never uploaded');
+    execFileSync('tar', ['-czf', file, '--exclude=node_modules', '--exclude=.git', '--exclude=.vercel', '--exclude=.next', '--exclude=__pycache__', '--exclude=.DS_Store', '--exclude=._*', '-C', dir, ...entries], { stdio: 'pipe', env: { ...process.env, COPYFILE_DISABLE: '1' } });
     return fs.readFileSync(file);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 }
@@ -103,7 +107,7 @@ export async function handleDeploy(rawArgs: string[], apiUrl: string) {
     } else if (args[i] === '--manifest' && args[i + 1]) {
       manifestPath = args[i + 1];
       i++;
-    } else if (args[i] === '--show-settings' || args[i] === '--yes' || args[i] === '-y' || args[i] === '--draft') {
+    } else if (args[i] === '--show-settings' || args[i] === '--yes' || args[i] === '-y' || args[i] === '--draft' || args[i] === '--no-env-file') {
       // handled above
     } else if (!args[i].startsWith('--')) {
       dir = args[i];
@@ -143,15 +147,20 @@ export async function handleDeploy(rawArgs: string[], apiUrl: string) {
     process.exit(1);
   }
 
+  // The .env files are not in the archive: their values go in `secrets`, their names are printed, and the values never are.
+  let env;
+  try { env = envForDeploy(srcDir, args.includes('--no-env-file')); } catch (e: any) { console.error(e.message); process.exit(1); }
+  if (env.message) console.log(env.message);
   const base: Record<string, string> = { project, engine };
+  if (env.secrets) base.secrets = env.secrets;
   if (manifestContent) base.manifest = manifestContent;
   if (Object.keys(overrides).length) base.overrides = JSON.stringify(overrides);
   try {
     console.log(`Deploying ${project} ...`);
-    // With no manifest the server answers with a draft instead of deploying, unless --yes says to go ahead. Only a person at a terminal is asked:
+    // With no manifest the server answers with a draft instead of deploying, unless --yes says to go ahead (or Railpack's plan is clean enough to deploy without asking; --draft turns that off and always shows the settings). Only a person at a terminal is asked:
     // a script cannot answer, so it keeps the standard settings (as before) unless it passes --yes (use the settings worked out from the code) or --draft (show them and stop).
     const ask_first = !yes && (process.stdin.isTTY || args.includes('--draft'));
-    let r = await postDeploy(apiUrl, { ...base, ...(yes ? { skip_confirmation: 'true' } : ask_first ? { draft: 'true' } : {}) }, archive, false);
+    let r = await postDeploy(apiUrl, { ...base, ...(yes ? { skip_confirmation: 'true' } : ask_first ? { draft: 'true', ...(args.includes('--draft') ? { draft_only: 'true' } : {}) } : {}) }, archive, false);
 
     if (r.last?.stage === 'needs_confirmation') {
       const d = r.last;
