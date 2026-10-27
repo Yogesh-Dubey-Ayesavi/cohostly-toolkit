@@ -24,6 +24,6 @@
     "typescript": "^5.5.0"
   },
   "bin": {
-    "cohostly-sdk": "./dist/cli.js"
+    "cohostly-sdk": "dist/cli.js"
   }
 }

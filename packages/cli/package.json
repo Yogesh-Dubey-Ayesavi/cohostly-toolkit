@@ -5,8 +5,8 @@
   "license": "UNLICENSED",
   "type": "module",
   "bin": {
-    "cohostly": "./bin/platform",
-    "platform": "./bin/platform"
+    "cohostly": "bin/platform",
+    "platform": "bin/platform"
   },
   "main": "dist/index.js",
   "engines": {
