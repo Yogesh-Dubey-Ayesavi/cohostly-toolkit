@@ -26,7 +26,7 @@ Cohostly takes a project's code, builds it and gives it a web address. Your job 
 3. **Show the person the draft.** Each setting has a reason. Ask them to accept or change it. This step stops a surprise bill or an open door.
 4. **Confirm.** Call `deploy` again with the same code and the `confirm_token`. Add `manifest` if they changed something. Use `skip_confirmation: true` only when the person already said to go ahead without reviewing.
 5. **Read the result.** The reply gives the address and the stages it passed through. If it failed, its first line is `code: <code>`, then the cause and the fix. Act on the code (see `references/troubleshooting.md`) and report in plain words; do not paste the raw log unless asked.
-6. **Decide visibility** with `set_visibility`. Do not leave it at the default without telling them what it is (see `references/auth.md`).
+6. **Decide visibility** with `set_visibility`, once the person has chosen. Read what it is now, tell them, and propose the level that fits what they said ("so my team can see it" suggests `account`); do not leave it at the default unmentioned (see `references/auth.md`).
 
 Code bigger than the paste limit goes through `get_upload_url`, then a plain upload, then `deploy` with the `upload_id`. A sealed `.cohostly` file travels the same way (see `references/capture.md`).
 
@@ -36,6 +36,7 @@ Code bigger than the paste limit goes through `get_upload_url`, then a plain upl
 - **Keep the lockfile** (`package-lock.json`, `pnpm-lock.yaml`, `requirements.txt`). Without it the build installs different versions than the ones that ran on this machine.
 - **The app reads `PORT` and listens on `0.0.0.0`.** Online, the platform picks the port and reaches the app from outside; an app bound to `127.0.0.1` is unreachable (`binds_loopback`).
 - **Never paste a secret value** into the chat or a file. Names go in `env.secrets`; values go through capture, `request_secret` or `cohostly secrets set`.
+- **Propose who can open the app; do not set it.** Who may open an app is the person's decision, and a phrase like "my team" has more than one reading (the whole account, named people, anyone with the link). After the app is live, read the current level, say it, offer the one that fits as a question, and call `set_visibility` only after a yes. This holds for every level, `account` included, not just `public` and `link`.
 - **After a failure, fix the cause named by `code` and redeploy at most twice.** Past that you are guessing, and every try costs a build. Stop, then tell the person what you tried and what is still wrong.
 - **Fix a wrong detected value by writing only that field** into `cohostly.json` (or its flag). Copying every detected value pins them all and switches auto-detection off. See `references/capture.md`.
 
@@ -51,7 +52,7 @@ Code bigger than the paste limit goes through `get_upload_url`, then a plain upl
 
 Each of these changes who can reach the person's app or what it costs. Say what will happen and wait for a yes:
 
-- `set_visibility` to `public` or `link`, or sharing with anyone outside the account.
+- `set_visibility` to any level other than the one the person just chose (always for `public` and `link`), or sharing with anyone outside the account.
 - `share` with `editor` or `admin`.
 - `rotate_sandbox_token` (the running app restarts).
 - `revoke_token` for a token someone is using.
