@@ -41,12 +41,13 @@ platform new <static|flask|fastapi|express|go|nextjs> [folder]
 ```bash
 cohostly snapshot [--expires 30d] [--account <id>] -- <start command ...>
 cohostly check [--generated]
-cohostly deploy [dir] [--project <name>] [--generated] [--force]
+cohostly deploy [dir] [--project <name>] [--generated] [--force] [--verbose]
 ```
 
 | Command or option | Meaning |
 | --- | --- |
 | `snapshot -- <command>` | run the app here and write `.cohostly/` (Dockerfile, cohostly.json, capture.json, env.enc). The command after `--` runs directly, with no shell |
+| `deploy --verbose` (`-v`) | print every build line. Without it, a terminal shows one live line with the time spent and the newest build line |
 | `snapshot --timeout <duration>` | how long to wait for the app to listen, for example `60s` (default 30s) |
 | `snapshot --probe-path <path>` | the page `check` asks for, default `/` |
 | `snapshot --forward-loopback` | forward the port of an app that only listens on 127.0.0.1 |

@@ -7,6 +7,7 @@ import * as readline from 'node:readline/promises';
 import { takeSetFlags, printSettings } from './manifest.js';
 import { staleTypesMessage } from './types.js';
 import { envForDeploy, ENV_FILES } from '../env-files.js';
+import { DeployProgress } from '../deploy-progress.js';
 
 const MAX_UPLOAD = 50 * 1024 * 1024; // the API's upload limit
 
@@ -40,21 +41,22 @@ export async function postDeploy(apiUrl: string, fields: Record<string, string>,
   if (res.status === 413) return { http: 413, last: { stage: 'failed', error: 'The server refused the upload because it is too large (about 30 MB is the most it accepts in one request). Leave out build output, large data files and dependency folders (node_modules and .git are already left out), then deploy again.' } };
   const type = res.headers.get('content-type') ?? '';
   if (!type.includes('ndjson')) { const data = (await res.json().catch(() => ({}))) as any; return { http: res.status, last: res.ok ? { stage: 'live', ...data } : { stage: 'failed', status: res.status, ...data } }; }
-  let last: any; let buf = ''; let lastStage = ''; let lastLog = '';
+  let last: any; let buf = '';
   const decoder = new TextDecoder();
-  for await (const chunk of res.body as any) {
-    buf += decoder.decode(chunk, { stream: true });
-    let i: number;
-    while ((i = buf.indexOf('\n')) >= 0) {
-      const line = buf.slice(0, i); buf = buf.slice(i + 1);
-      if (!line.trim()) continue;
-      const e = JSON.parse(line); last = e;
-      if (quiet || ['live', 'failed', 'needs_confirmation'].includes(e.stage)) continue;
-      if (e.log) { lastLog = e.log; if (process.env.PLATFORM_VERBOSE) console.log(`    ${e.log}`); continue; }
-      if (e.stage !== lastStage || e.message) { console.log(`${label(e.stage)}${e.message ? '  ' + e.message : ''}`); lastStage = e.stage; }
+  const progress = new DeployProgress(label, { verbose: !!process.env.PLATFORM_VERBOSE });
+  try {
+    for await (const chunk of res.body as any) {
+      buf += decoder.decode(chunk, { stream: true });
+      let i: number;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i); buf = buf.slice(i + 1);
+        if (!line.trim()) continue;
+        const e = JSON.parse(line); last = e;
+        if (quiet || ['live', 'failed', 'needs_confirmation'].includes(e.stage)) continue;
+        progress.event(e);
+      }
     }
-  }
-  void lastLog;
+  } finally { progress.done(); }
   return { http: res.status, last };
 }
 const label = (s: string) => ({ analyzing: 'Analysing', uploading: '[1/4] Uploading', building: '[2/4] Building', starting: '[3/4] Starting', live: '[4/4] Live' } as Record<string, string>)[s] ?? s;
