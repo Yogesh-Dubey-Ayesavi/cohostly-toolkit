@@ -25,7 +25,7 @@ import { handleApprovals } from './commands/approvals.js';
 import { handleShare } from './commands/share.js';
 import { installAuth, handleLogin, handleLogout, handleWhoami } from './auth.js';
 
-const API_URL = process.env.API_URL || 'http://127.0.0.1:8000';
+const API_URL = process.env.API_URL || 'https://api.cohostly.cloud';
 const PROXY_URL = process.env.PROXY_URL || 'http://127.0.0.1:8080';
 
 export async function main() {
