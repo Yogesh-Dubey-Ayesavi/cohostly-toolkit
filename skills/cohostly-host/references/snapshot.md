@@ -29,6 +29,12 @@ Nothing else needs to be learned. The Dockerfile is an ordinary Dockerfile and t
 - **A root Dockerfile that fails** shows its own build error and is left alone. `cohostly check --generated` and `cohostly deploy --generated` use the generated one instead, only when asked.
 - **Settings** (port, health path, visibility, bindings) go in `.cohostly/cohostly.json`. Snapshot overwrites the generated Dockerfile but you can re-run it any time; it does not replace edits in a root Dockerfile.
 
+## Machine size
+
+The image is built on a machine of the same size the app then runs on, so a heavy build needs a bigger one. Snapshot picks the size from the project and writes it to `compute` in `cohostly.json` only when the default (512 MB, 1 vCPU) is not enough, and a `NOTE` says why. For example, `next build` gets 2048 MB and 2 vCPU; a plain API gets nothing and keeps the default. It looks at the build steps (a `package.json` script such as `npm run build` is followed), how many packages were installed, heavy Python packages such as torch, and the memory the app used while it was observed. Sizes are 512, 1024 or 2048 MB.
+
+To change it, edit `compute` in `.cohostly/cohostly.json` (`{ "vcpu": 2, "memory": 2048 }`) or deploy with `--set compute.memory=2048`. A size you set by hand is kept when snapshot runs again. A build that is killed partway through an install or build step is usually out of memory: raise the size one step.
+
 ## When `check` fails
 
 It prints the failing step and the log with secret values removed, then what it observed (a module the app could not import, apt packages that provide files a command looked for), or `cannot decide` when nothing explains it. Fix the Dockerfile by hand using that evidence and run `check` again. Do not guess a package name; ask the person.
