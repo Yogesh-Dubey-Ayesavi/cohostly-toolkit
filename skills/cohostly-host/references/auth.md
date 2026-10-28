@@ -36,11 +36,10 @@ The dashboard's Sharing screen shows four cards: only people invited, everyone i
 
 Defaults, and a trap to check:
 
-- The **manifest** default is `link` (`packages/image-builder/src/defaults.ts`).
-- The **project record** defaults to `private` in the database.
-- These are not reconciled in code yet. After a first deploy, call `describe_project` and read the visibility it reports. If it is not what the person wants, call `set_visibility`. Do not assume.
+- The **manifest** can name a visibility, but it is ignored: a deploy never changes sharing, and `check_manifest` warns when the line is there. Do not write it.
+- A new project starts `private`. After a first deploy, call `describe_project` and read the visibility it reports, tell the person, and call `set_visibility` only once they choose. Do not assume.
 
-Also note: the manifest schema accepts only `private`, `link` and `public`. `account` and `signed_in` work through `set_visibility`, `platform share` and the dashboard, but a manifest that sets either fails validation. If the person wants account-wide or signed-in-only access, set it with `set_visibility` after the deploy, not in the manifest.
+Only `private`, `link` and `public` are even accepted in a settings file; `account` and `signed_in` are set with `set_visibility`, `platform share` or the dashboard after the deploy.
 
 Opening an app wider than it is now (to `signed_in`, `link` or `public`) is a decision for the person. Say what it means in one sentence first: "anyone with the link can open it, signed in or not" or "anyone with a Cohostly account can open it".
 

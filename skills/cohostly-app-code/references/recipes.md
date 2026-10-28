@@ -19,7 +19,8 @@ scripts/scaffold.sh notes-data ./my-notes        # copy one, named my-notes (nev
 | read or write a person's Google or Microsoft account (a sheet, a mailbox, a calendar) | `sheet-form` (TypeScript, Express) | `connections` | `bindings.md` |
 | gate pages by role (members, editors, an owner-only admin page) | `roles-gate` (TypeScript, Express) | none | `context.md` |
 | accept calls from a program (a webhook, Zapier, a script) with an access key | `machine-access` (TypeScript, Express) | none | `verify-token.md` |
-| act as each visitor's own Google account (their calendar, their sheet) | `my-agenda` (TypeScript, Express) | `connections` (`access: "user"`) | `bindings.md` |
+| act as each visitor's own Google account (their calendar, their sheet), the smallest version | `my-agenda` (TypeScript, Express) | `connections` (`access: "user"`) | `bindings.md` |
+| let every visitor connect their own accounts (Google, Outlook) with a status card, connect, reconnect and switch account: a multi-tenant app that stores no tokens | `connect-accounts` (TypeScript, Express) | `connections` (two `access: "user"`) | `bindings.md` |
 | a single-page app that knows who is signed in, with sign-in and sign-out links | `spa-login` (static page, small Node server) | none | `context.md` |
 | verify who is calling from Python | `fastapi-verify` (FastAPI) | none | `verify-token.md` |
 | verify who is calling from Go | `go-verify` (Go, standard library) | none | `verify-token.md` |

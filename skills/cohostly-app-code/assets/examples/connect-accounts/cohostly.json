@@ -1,0 +1,11 @@
+{
+  "manifest_version": 2,
+  "name": "connect-accounts",
+  "health": { "port": 3000 },
+  "bindings": {
+    "connections": {
+      "google": { "provider": "google-workspace", "permissions": ["calendar.read"], "access": "user" },
+      "microsoft": { "provider": "microsoft-graph", "permissions": ["calendar.read"], "access": "user" }
+    }
+  }
+}

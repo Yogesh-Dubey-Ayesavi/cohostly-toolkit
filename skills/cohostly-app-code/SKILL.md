@@ -9,7 +9,7 @@ The app is ordinary code: a web server, a script or a static site, in Python, No
 
 ## Start from what the app is told
 
-Before writing anything that depends on the platform, check what the project receives. Use `get_contract` (what the `platform` object can do, and which values are allowed) and `describe_context` (which visitor fields the project gets). Those are the source of truth; this skill is the map.
+Before writing anything that depends on the platform, check what the project receives. Use `get_contract` (what the `platform` object can do, and which values are allowed; it needs a live version) or, before the first deploy, `preview_contract` with the settings file and migrations (it gives the same text for `platform.gen.ts`), and `describe_context` (which visitor fields the project gets). Those are the source of truth; this skill is the map.
 
 ## The three things the app gets
 
@@ -32,7 +32,7 @@ Before writing anything that depends on the platform, check what the project rec
 
 ## Start from an example
 
-Twelve small, complete apps are in `assets/examples/`: a greeting that reads the visitor, an AI chat API, a notes API on managed data, a scheduled report, an approval gate, a form that writes to a Google Sheet, role-gated pages, an app a program calls with a key, a visitor-acting calendar view, a single-page app with sign-in, and token verifiers for Python and Go. Pick the nearest one with `references/recipes.md`, then copy it with `scripts/scaffold.sh <example> <folder> [name]` and change it. Copying is faster and safer than writing the platform calls from memory, because each example already declares its bindings, handles the "not yet" answers and is safe where the platform can deliver twice.
+Thirteen small, complete apps are in `assets/examples/`: a greeting that reads the visitor, an AI chat API, a notes API on managed data, a scheduled report, an approval gate, a form that writes to a Google Sheet, role-gated pages, an app a program calls with a key, a visitor-acting calendar view, a multi-tenant app where each visitor connects their own accounts, a single-page app with sign-in, and token verifiers for Python and Go. Pick the nearest one with `references/recipes.md`, then copy it with `scripts/scaffold.sh <example> <folder> [name]` and change it. Copying is faster and safer than writing the platform calls from memory, because each example already declares its bindings, handles the "not yet" answers and is safe where the platform can deliver twice.
 
 ## Local development
 

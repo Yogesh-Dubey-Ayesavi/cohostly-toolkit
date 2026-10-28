@@ -11,7 +11,7 @@ The workspace that owns projects. Each person in it is an `owner`, `admin` or `m
 | Thing | What to know |
 | --- | --- |
 | **Secrets** | A secret normally belongs to one project. `share_secret` moves it to the whole account so other projects can use it; only owners and admins can. `list_secrets` shows names and where each is set, never values. |
-| **AI provider keys** | The platform provides some models with no key. Others need the account's own provider key. `list_ai_keys` shows which models need one and each saved key's provider, a short hint and whether the provider accepts it. It never shows a key and cannot add one: the person adds it in the dashboard (AI keys) or runs `platform ai-keys set <provider>`. Owners and admins only. |
+| **AI provider keys** | The platform provides some models with no key. Others need the account's own provider key. `list_ai_keys` shows which models need one and each saved key's provider, a short hint and whether the provider accepts it. It never shows a key and cannot add one: the person adds it in the dashboard (AI keys) or runs `platform ai-keys set <provider>`. Owners and admins only. `check_manifest` with the `project` named, and a deploy, warn when a listed model needs a key the account has not saved. |
 | **Connections** | Links to outside services (Google, Microsoft) that apps use. Removing a person from a project ends the connections they made to it. |
 | **API keys** (`plk_...`) | Scoped to the whole account or to one project, made by a person. See `auth.md`. |
 | **Activity** | The account's activity log of who changed what. |

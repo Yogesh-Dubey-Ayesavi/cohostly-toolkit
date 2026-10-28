@@ -2,6 +2,16 @@
 
 All notable changes to `@cohostly/sdk`. Versions follow semver; while the major version is 0, a minor bump may change behaviour.
 
+## 0.2.1
+
+### Fixed
+
+- **An app no longer rejects its own signed-in visitors as "the token is for a different app".** The token is issued for the address the visitor used. `context()` and `middleware()` read it from `X-Platform-App-Host`, which the platform now sends on every request, and fall back to `X-Forwarded-Host` and then `Host` (the first entry of a list). A proxy between the platform and the app can rewrite the last two, which is how an app saw an address that was not the visitor's. Apps that set `audience` by hand to work around this can drop it. The error now says both addresses.
+
+### Added
+
+- `appHost(request)`: the address the token must be issued for, for code that verifies the token itself.
+
 ## 0.2.0
 
 ### Changed

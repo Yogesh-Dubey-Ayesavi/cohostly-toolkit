@@ -54,7 +54,7 @@ Rules:
 
 ### `get_upload_url`
 
-Returns a one-time `upload_url`, `upload_id` and `expires_in_s`. Send the archive with an HTTP `PUT` (the reply gives a `curl` line), then call `deploy` with the `upload_id`. The upload id is removed after a successful deploy.
+Returns a one-time `upload_url`, `upload_id` and `expires_in_s`. Send the archive with an HTTP `PUT` (the reply gives a `curl` line: `curl -X PUT -H "Content-Type: application/gzip" --data-binary @project.tar.gz "<upload_url>"`), then call `deploy` with the `upload_id`. Plain `curl -T` also works. The upload id is removed after a successful deploy.
 
 ### `check_manifest`
 
@@ -74,10 +74,11 @@ Input: `project` and `files` (a map of path to TypeScript source). Type-checks a
 | `describe_context` | What a project tells its app about each kind of visitor. Optional `project`, or a `preset` to preview. |
 | `describe_bindings` | Which platform services the project declares and when they were last used. |
 | `describe_data` | Tables and row rules for the managed database. Never shows rows or addresses. |
-| `get_contract` | The typed calls the app can make through `platform`. |
+| `get_contract` | The typed calls the app can make through `platform`, for a project that has a live version. |
+| `preview_contract` | The same typed calls for a settings file (and its migrations) before anything is deployed: send `cohostly.json` and, for managed data, the migrations, and write the reply to `platform.gen.ts`. |
 | `usage` | Counts of projects, deploys and backups over `days`. |
 | `get_logs` | The app's recent output (owners and editors). Give `since` to read only new lines. |
-| `list_connections` | The connections the manifest asks for, connected or not, the account, permissions and file limits. |
+| `list_connections` | The connections the manifest asks for, connected or not, the account, permissions and file limits. `available` lists the connected accounts of the project's own account only; when it is empty, `note` says which account that is and `connected_in_other_accounts` where the person's connections are. |
 | `describe_connection` | One connection in plain words: whose account it acts as, what it may do, and the connect page for `access: "user"`. |
 
 ## Changing

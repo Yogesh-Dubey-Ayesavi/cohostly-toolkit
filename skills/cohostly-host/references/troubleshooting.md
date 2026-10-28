@@ -88,7 +88,7 @@ The new code changed something that the saved settings depend on. That is intend
 
 The app's SDK `middleware()` got a context token and could not verify it. The reason is in the app's log (`get_logs`), on a line starting `[platform] context not verified:`.
 
-- `the token is for a different app`: the app checked the token against the wrong host. A project deployed before the proxy sent `X-Forwarded-Host` needs a redeploy; an app that sets `audience` by hand must use its public address.
+- `the token is for a different app (it is for X, and the request arrived as Y)`: the app compared the token with the wrong address. The platform sends the address the visitor used in `X-Platform-App-Host`; a proxy between the platform and the app can rewrite `Host` and `X-Forwarded-Host`, so an app that reads those can reject its own tokens. Use `@cohostly/sdk` 0.2.1 or later (it reads `X-Platform-App-Host` first), or in another language compare with that header (`verify-token.md`). Do not hard-code `audience`: it breaks on a custom domain and after a link reset. If X and Y are the same address with a port or a list, the app is reading the wrong header.
 - `the platform's public keys could not be fetched`: the app cannot reach `PLATFORM_AUTH_URL`. Check the manifest's `network` rules allow it.
 - `the token has expired`: the app's clock is wrong, or the request was replayed.
 

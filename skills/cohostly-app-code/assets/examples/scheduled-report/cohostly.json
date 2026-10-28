@@ -1,7 +1,6 @@
 {
   "manifest_version": 2,
   "name": "scheduled-report",
-  "visibility": "private",
   "health": { "port": 3000 },
   "bindings": { "cron": { "code": true }, "data": { "managed": true } }
 }

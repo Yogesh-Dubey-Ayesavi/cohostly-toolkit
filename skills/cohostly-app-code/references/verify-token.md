@@ -15,7 +15,7 @@ Every request that reaches the app carries `X-Platform-Context`, a compact JWT (
 | Claims | `iss`, `aud`, `iat`, `exp`, `jti`, `sub` (when the caller has an ID), `ctx`. |
 
 - `iss`: the platform's address, exactly `PLATFORM_AUTH_URL` with no trailing slash.
-- `aud`: the host this request arrived on, lower case (`x-forwarded-host` if present, otherwise `Host`). A token is for one app address and no other.
+- `aud`: the address the visitor used, lower case. The platform sends the same value in the `X-Platform-App-Host` header; compare against that. Use `X-Forwarded-Host` and then `Host` only if it is absent, taking the first entry of a comma-separated list, because a proxy between the platform and the app can rewrite those two (an app that read `Host` rejected its own tokens as "for a different app"). A token is for one app address and no other.
 - `exp`: 5 minutes after `iat`. The token belongs to one request: `jti` is the request ID.
 - `sub`: the caller's stable ID, the same as `ctx.caller.id`. Absent for an anonymous visitor.
 - `ctx`: the context in groups, `{ "caller": { "kind": "person", ... }, "access": { "role": "editor", ... } }`. The fields are listed at `platform://reference/context-fields`. A field that is unknown or not allowed is absent. A field the app asked for that the person does not share is `null` next to `<name>_status: "not_shared"`.
@@ -31,7 +31,7 @@ Every request that reaches the app carries `X-Platform-Context`, a compact JWT (
 3. The signature verifies.
 4. `exp` has not passed and `iat` is not in the future, each with up to 30 seconds of clock difference allowed.
 5. `iss` equals `PLATFORM_AUTH_URL`.
-6. `aud` equals the host the request arrived on.
+6. `aud` equals the address in `X-Platform-App-Host`.
 
 Any failure is a 401, with one plain sentence ("The platform's context for this request could not be verified."). Never echo the token. Log the reason on the server side only.
 

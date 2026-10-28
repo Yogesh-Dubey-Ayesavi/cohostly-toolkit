@@ -19,7 +19,7 @@ All of these are live. `get_contract` is still the authority on what this projec
 | Connections (`bindings.connections.<name>`) | Live: Google and Microsoft. Slack is not set up yet. See "Connections" below |
 | Scheduled jobs (`bindings.cron`) | Live. See `cron.md` |
 
-Run `get_contract` for what the project's `platform` object can actually call right now. If a call is not in the contract, the code cannot use it, and `check_code` will say so.
+Run `get_contract` for what the project's `platform` object can actually call right now (before the first deploy, `preview_contract` with the settings text does the same; do not deploy a placeholder app just to get it). If a call is not in the contract, the code cannot use it, and `check_code` will say so.
 
 ## The `platform` object
 
@@ -115,6 +115,8 @@ await graph.drives.byDriveId('me').items.byDriveItemId(id).content.get()   // 'm
 - The visitor's context goes along automatically when the call is made inside a request the SDK `middleware()` handles, which `access: "user"` needs.
 - Microsoft: v1.0 only (not beta). `@microsoft/msgraph-sdk` is still labelled preview by Microsoft.
 - Errors from the platform (not connected, a file outside the grant, a permission not given) come back through the client as an HTTP error with the platform's `{ error: { code, message, how_to_fix } }` body.
+
+**Many visitors, each with their own account (multi-tenant).** With `access: "user"` the app never runs an OAuth flow, holds a token or keeps a table of who connected what: the Connect button is `connect_url` (the platform's connect page, with the provider's own consent), and the platform picks the connection from the signed request context. Ask `allowed()` first for one of three states per visitor (`not_connected`, `active`, `needs_reauth`) and give each its button; `connect_url` is on all three. `assets/examples/connect-accounts` is the complete app.
 
 **`access: "user"` needs the request context.** The platform finds the visitor's connection from the signed `X-Platform-Context` token, so a call made outside a request (a timer, a job) cannot use it, and the call must happen inside a request the SDK `middleware()` is handling (it forwards the token for you). Without it the call fails with `caller_unknown` (401).
 

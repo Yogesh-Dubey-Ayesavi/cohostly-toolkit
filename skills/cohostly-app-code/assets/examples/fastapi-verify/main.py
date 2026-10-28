@@ -15,8 +15,9 @@ def platform_context(request: Request) -> dict:
     token = request.headers.get("x-platform-context")
     if not token:
         raise HTTPException(401, "This app must be opened through the platform.")
-    # The token is for one app address: the host the request arrived on.
-    host = (request.headers.get("x-forwarded-host") or request.headers.get("host", "")).lower()
+    # The token is for one app address: the one the visitor used. The platform sends it as X-Platform-App-Host. X-Forwarded-Host and Host are fallbacks,
+    # because a proxy between the platform and the app can rewrite them. Take the first of a list.
+    host = next((v.split(",")[0].strip() for v in (request.headers.get("x-platform-app-host"), request.headers.get("x-forwarded-host"), request.headers.get("host")) if v), "").lower()
     try:
         claims = jwt.decode(
             token,

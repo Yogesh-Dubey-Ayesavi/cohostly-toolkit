@@ -124,14 +124,22 @@ func verify(token, host string, now time.Time) (Context, error) {
 	return claims.Ctx, nil
 }
 
+// appHost is the address the visitor used, which the token is issued for. The platform sends it as X-Platform-App-Host; X-Forwarded-Host and Host are
+// fallbacks, because a proxy between the platform and the app can rewrite them. The first of a comma-separated list is the visitor's.
+func appHost(r *http.Request) string {
+	for _, v := range []string{r.Header.Get("X-Platform-App-Host"), r.Header.Get("X-Forwarded-Host"), r.Host} {
+		if first := strings.TrimSpace(strings.Split(v, ",")[0]); first != "" {
+			return first
+		}
+	}
+	return ""
+}
+
 // requirePlatform verifies the signed context and puts it on the request, or answers 401.
 func requirePlatform(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("X-Platform-Context")
-		host := r.Header.Get("X-Forwarded-Host")
-		if host == "" {
-			host = r.Host
-		}
+		host := appHost(r)
 		ctx, err := verify(token, host, time.Now())
 		if token == "" || err != nil {
 			http.Error(w, "The platform's context for this request could not be verified.", http.StatusUnauthorized)
