@@ -12,7 +12,7 @@ import { inspectSnapshot, parseExpires, sealSnapshot, ustar } from './snapshot/s
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI = join(HERE, 'index.js');
-const FIXTURES = join(HERE, '..', '..', '..', 'tests', 'fixtures', 'capture');
+const FIXTURES = join(HERE, '..', 'test-fixtures');
 const CANARY = 'canary-cli-seal-3b8d-do-not-leak';
 const ACCOUNT = '11111111-1111-4111-8111-111111111111';
 const rp = process.env.COHOSTLY_RAILPACK || process.env.RAILPACK_BIN || spawnSync('which', ['railpack']).stdout.toString().trim();
