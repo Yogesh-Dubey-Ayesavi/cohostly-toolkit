@@ -1,6 +1,6 @@
-# The `platform` CLI
+# The `cohostly` CLI
 
-Read this when you have a shell but no MCP tools, or when the person wants to run things themselves. Commands and flags below are the ones in `packages/cli/src/index.ts` and `commands/`. Run `platform` with no arguments to see the current help.
+Read this when you have a shell but no MCP tools, or when the person wants to run things themselves. `cohostly` and `platform` are the same program; the examples use `platform` where they always have, and either name works. Commands and flags below are the ones in `packages/cli/src/index.ts` and `commands/`. Run `cohostly` with no arguments to see the current help.
 
 ## Sign in first
 
@@ -18,7 +18,7 @@ Never type a key as a command argument in a shared shell history if you can avoi
 ```bash
 platform deploy [dir] --project <name>            # shows the settings it worked out and asks first (in a terminal)
 platform deploy [dir] --project <name> --yes      # accept the settings without asking
-platform deploy [dir] --project <name> --manifest manifest.json
+platform deploy [dir] --project <name> --manifest cohostly.json
 platform deploy [dir] --project <name> --set visibility=private   # one setting, repeatable
 platform deploy [dir] --project <name> --show-settings
 platform deploy [dir] --project <name> --draft    # print the draft, do not deploy
@@ -28,11 +28,44 @@ platform deploy [dir] --project <name> --draft    # print the draft, do not depl
 - Without a terminal (an agent or CI), it does not ask. Use `--draft` first, read the draft, then deploy with `--manifest` or `--yes`. Only use `--yes` when the person has agreed to the settings.
 - `--skip-types-check` skips checking code against the platform contract. Do not use it to hide a real error.
 
+Setting flags, on `deploy`: `--language`, `--node-version` / `--python-version` / `--go-version` (all set `runtime.version`), `--root`, `--install` (the install command), `--build`, `--start`, `--port`, `--package-manager`. Each is a shortcut for `--set <path>=<value>`. A value set this way is the person's own word and shows as `you`; everything not set is still detected.
+
 Start a small new project from a template:
 
 ```bash
 platform new <static|flask|fastapi|express|go|nextjs> [folder]
 ```
+
+## Snapshot: deploy what already runs
+
+```bash
+cohostly snapshot [--expires 30d] [--account <id>] -- <start command ...>
+cohostly check [--generated]
+cohostly deploy [dir] [--project <name>] [--generated] [--force] [--verbose]
+```
+
+| Command or option | Meaning |
+| --- | --- |
+| `snapshot -- <command>` | run the app here and write `.cohostly/` (Dockerfile, cohostly.json, capture.json, env.enc). The command after `--` runs directly, with no shell |
+| `deploy --verbose` (`-v`) | print every build line. Without it, a terminal shows one live line with the time spent and the newest build line |
+| `snapshot --timeout <duration>` | how long to wait for the app to listen, for example `60s` (default 30s) |
+| `snapshot --probe-path <path>` | the page `check` asks for, default `/` |
+| `snapshot --forward-loopback` | forward the port of an app that only listens on 127.0.0.1 |
+| `snapshot --expires <1d..30d>`, `--account <id>` | life and account of the sealed `env.enc` (default 30d, your first account) |
+| `check` | build and start the Dockerfile that would be deployed: `./Dockerfile` if there is one, else `.cohostly/Dockerfile`. Needs Docker. Never edits a file |
+| `check --generated` | check the generated Dockerfile even if the project has its own |
+| `deploy` | in a folder with a snapshot, deploys it. Stops while a `TODO(cohostly)` line is open (`--force` deploys anyway) |
+| `deploy --generated` | use the generated Dockerfile instead of the project's own |
+
+What the folder holds and how to change the build: `snapshot.md`.
+
+```bash
+cohostly pack [dir] --out app.cohostly [--no-secrets] [--env-file f] [--expires 7d] [--account id]
+cohostly inspect app.cohostly            # settings, sources, expiry, secret names; opens nothing
+cohostly deploy app.cohostly [--project name]
+```
+
+`pack` seals a folder: a snapshot folder if there is one (its settings and Dockerfile), else the project's `cohostly.json` (or `manifest.json`). It takes secret values only from the file named by `--env-file`. Sealing is not end-to-end encryption: see `snapshot.md`.
 
 ## Check settings without deploying
 

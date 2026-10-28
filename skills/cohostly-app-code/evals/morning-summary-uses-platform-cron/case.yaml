@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: morning-summary-uses-platform-cron
+expected_outcome: |
+  Explains that an idle app is paused so an in-app timer would not fire, and schedules the job with the platform (manifest schedule or platform.cron) with a time zone and a handler that is safe to run twice.

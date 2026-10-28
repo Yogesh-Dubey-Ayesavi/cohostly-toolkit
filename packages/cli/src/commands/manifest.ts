@@ -1,21 +1,31 @@
 import * as path from 'node:path';
 import * as fs from 'node:fs';
+import { findManifestFile } from '../manifest-file.js';
 
 export interface Setting { path: string; value: unknown; source: 'flag' | 'file' | 'default'; note?: string }
+
+/** Flags that are shortcuts for `--set path=value` (Phase 25g): each is turned into a --set entry, never a second way to set a setting. */
+export const SETTING_FLAGS: Record<string, string> = {
+  '--language': 'runtime.language', '--node-version': 'runtime.version', '--python-version': 'runtime.version', '--go-version': 'runtime.version',
+  '--root': 'runtime.root', '--install': 'runtime.install_command', '--build': 'runtime.build', '--start': 'runtime.entrypoint', '--port': 'health.port', '--package-manager': 'runtime.package_manager',
+};
 
 /** `--set compute.memory=1024` (repeatable): a CLI flag for any manifest setting. It beats the manifest file. Values are read as JSON when they are JSON, else as text. */
 export function takeSetFlags(args: string[]): { rest: string[]; overrides: Record<string, unknown> } {
   const rest: string[] = [];
   const overrides: Record<string, unknown> = {};
+  const put = (path: string, raw: string) => { let value: unknown = raw; try { value = JSON.parse(raw); } catch { /* plain text */ } overrides[path] = value; };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--set') {
       const kv = args[++i];
       const eq = kv ? kv.indexOf('=') : -1;
       if (eq < 1) { console.error('Error: --set needs a setting and a value, for example --set compute.memory=1024'); process.exit(1); }
-      const raw = kv.slice(eq + 1);
-      let value: unknown = raw;
-      try { value = JSON.parse(raw); } catch { /* plain text */ }
-      overrides[kv.slice(0, eq)] = value;
+      put(kv.slice(0, eq), kv.slice(eq + 1));
+    } else if (SETTING_FLAGS[args[i]]) {
+      const v = args[++i];
+      if (v === undefined || v.startsWith('--')) { console.error(`Error: ${args[i - 1]} needs a value, for example ${args[i - 1]} ${args[i - 1] === '--port' ? '3000' : 'x'}`); process.exit(1); }
+      // A version such as 22 or 3.12 is text, not a number: the settings file holds it as text.
+      if (SETTING_FLAGS[args[i - 1]] === 'runtime.version') overrides['runtime.version'] = v; else put(SETTING_FLAGS[args[i - 1]]!, v);
     } else rest.push(args[i]);
   }
   return { rest, overrides };
@@ -43,9 +53,11 @@ export async function handleManifest(args: string[], apiUrl: string) {
     else if (!rest[i].startsWith('--')) dir = rest[i];
   }
   const srcDir = path.resolve(process.cwd(), dir);
-  const file = manifestPath ? path.resolve(process.cwd(), manifestPath) : path.join(srcDir, 'manifest.json');
-  if (manifestPath && !fs.existsSync(file)) { console.error(`Error: manifest file not found: ${file}`); process.exit(1); }
-  const content = fs.existsSync(file) ? fs.readFileSync(file, 'utf-8') : '';
+  const file = manifestPath ? path.resolve(process.cwd(), manifestPath) : '';
+  if (manifestPath && !fs.existsSync(file)) { console.error(`Error: settings file not found: ${file}`); process.exit(1); }
+  const found = manifestPath ? null : findManifestFile(srcDir);
+  if (found?.notice) console.log(found.notice);
+  const content = manifestPath ? fs.readFileSync(file, 'utf-8') : found?.text ?? '';
 
   let data: any;
   try {

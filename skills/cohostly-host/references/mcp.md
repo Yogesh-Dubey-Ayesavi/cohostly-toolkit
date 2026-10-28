@@ -4,11 +4,19 @@ Read this when the MCP tools for Cohostly are available and you need to know wha
 
 The server is at `https://api.<platform-domain>/mcp` (Streamable HTTP, stateless). Every call runs as the signed-in person and is written to the activity log as made by an agent. Tool descriptions are sent to the client too; this file covers the workflow and the parts the descriptions leave out.
 
+## Beyond tools
+
+The server also offers:
+
+- **Resources.** `skill://<name>/<path>` for the skills, their references and the worked example apps (`skill://index` lists them all); `platform://reference/<name>` for the platform's lists (`platform://reference/index`).
+- **Tools for clients that do not read resources.** `read_skill` (skill and path) and `read_reference` (name; empty for the index).
+- **Prompts** a client may show as a menu: `deploy_folder`, `share_safely`, `debug_failed_deploy`, `add_sign_in`. Each is a short request that points back at these skills.
+
 ## Calls in order, for one deploy
 
 ```
 check_manifest (optional)   -> problems, warnings, settings
-deploy (code, no manifest)  -> needs_confirmation + confirm_token + draft
+deploy (code, no settings)  -> Live, or needs_confirmation + confirm_token + draft
   ... show the draft to the person, collect edits ...
 deploy (same code, confirm_token [, manifest]) -> Live: <url>
 describe_project            -> confirm address, visibility, live version
@@ -28,13 +36,15 @@ Inputs (send exactly one of the code inputs):
 | `upload_id` | the project is too big. Get it from `get_upload_url` first. |
 | `source_url` | the archive is at a public `https` address. |
 
-Other inputs: `project` (required, lowercase letters, numbers and dashes, it becomes the address), `manifest` (text of a `manifest.json`), `confirm_token`, `skip_confirmation`.
+A sealed `.cohostly` file is sent the same way (`get_upload_url`, upload, `deploy` with `upload_id`): its own settings and secrets are used. See `snapshot.md`.
+
+Other inputs: `project` (required, lowercase letters, numbers and dashes, it becomes the address), `manifest` (text of a `cohostly.json`), `confirm_token`, `skip_confirmation`.
 
 Replies:
 
-- **No manifest, first call:** `status: needs_confirmation`, a `confirm_token`, `expires_in_s`, and a `draft` of the settings with reasons. Nothing is online yet.
+- **No settings file, first call:** Railpack plans the build. When every setting was read from the files and none is risky, it goes live and the reply lists the settings with their `source`. Otherwise `status: needs_confirmation`, a `confirm_token`, `expires_in_s`, and a `draft` of the settings with reasons. Nothing is online yet.
 - **Confirmed:** `Live: <url>` with `stages` (uploading, building, starting, live).
-- **Failed:** the text names the stage it stopped at, the cause, and what to do. Pass the text on.
+- **Failed:** the first line is `code: <code>`, so you can act without reading prose; then the stage it stopped at, the cause, and what to do. The codes and their fixes are in `troubleshooting.md`. Pass the plain sentences on to the person.
 
 Rules:
 
@@ -44,7 +54,7 @@ Rules:
 
 ### `get_upload_url`
 
-Returns a one-time `upload_url`, `upload_id` and `expires_in_s`. Send the archive with an HTTP `PUT` (the reply gives a `curl` line), then call `deploy` with the `upload_id`. The upload id is removed after a successful deploy.
+Returns a one-time `upload_url`, `upload_id` and `expires_in_s`. Send the archive with an HTTP `PUT` (the reply gives a `curl` line: `curl -X PUT -H "Content-Type: application/gzip" --data-binary @project.tar.gz "<upload_url>"`), then call `deploy` with the `upload_id`. Plain `curl -T` also works. The upload id is removed after a successful deploy.
 
 ### `check_manifest`
 
@@ -64,10 +74,11 @@ Input: `project` and `files` (a map of path to TypeScript source). Type-checks a
 | `describe_context` | What a project tells its app about each kind of visitor. Optional `project`, or a `preset` to preview. |
 | `describe_bindings` | Which platform services the project declares and when they were last used. |
 | `describe_data` | Tables and row rules for the managed database. Never shows rows or addresses. |
-| `get_contract` | The typed calls the app can make through `platform`. |
+| `get_contract` | The typed calls the app can make through `platform`, for a project that has a live version. |
+| `preview_contract` | The same typed calls for a settings file (and its migrations) before anything is deployed: send `cohostly.json` and, for managed data, the migrations, and write the reply to `platform.gen.ts`. |
 | `usage` | Counts of projects, deploys and backups over `days`. |
 | `get_logs` | The app's recent output (owners and editors). Give `since` to read only new lines. |
-| `list_connections` | The connections the manifest asks for, connected or not, the account, permissions and file limits. |
+| `list_connections` | The connections the manifest asks for, connected or not, the account, permissions and file limits. `available` lists the connected accounts of the project's own account only; when it is empty, `note` says which account that is and `connected_in_other_accounts` where the person's connections are. |
 | `describe_connection` | One connection in plain words: whose account it acts as, what it may do, and the connect page for `access: "user"`. |
 
 ## Changing

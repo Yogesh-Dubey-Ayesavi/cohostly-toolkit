@@ -75,6 +75,15 @@ test('context(request) reads the token from the request and checks it against th
   assert.equal(await context({ headers: { host: 'app-aaaaa.apps.test' } }, opts), undefined, 'outside the platform there is simply no context')
 })
 
+test('the platform\'s own host header wins, so a proxy that rewrites X-Forwarded-Host or Host cannot make an app reject its own tokens', async () => {
+  const t = await mint(good())
+  const rewritten = { 'x-platform-context': t, 'x-platform-app-host': 'app-aaaaa.apps.test', 'x-forwarded-host': '3000-abc.sandbox.example, other.example', host: '10.0.0.4:3000' }
+  assert.equal((await context({ headers: rewritten }, { ...opts, audience: undefined }))?.caller?.kind, 'person')
+  const listed = { 'x-platform-context': t, 'x-forwarded-host': 'app-aaaaa.apps.test, 3000-abc.sandbox.example', host: '10.0.0.4:3000' }
+  assert.equal((await context({ headers: listed }, { ...opts, audience: undefined }))?.caller?.kind, 'person', 'the first of a list is the visitor\'s address')
+  await assert.rejects(context({ headers: { ...rewritten, 'x-platform-app-host': 'other-bbbbb.apps.test' } }, { ...opts, audience: undefined }), /for app-aaaaa.apps.test, and the request arrived as other-bbbbb.apps.test/, 'the message says both addresses')
+})
+
 test('the headers can be read as a hint, decoded, with absent fields absent', () => {
   const c = contextFromHeaders({ headers: { 'x-platform-caller-kind': 'person', 'x-platform-caller-name': 'Zo%C3%AB%20%C3%91and%C3%BA', 'x-platform-access-scopes': 'a,b%20c', 'x-platform-place-time-zone': 'Asia/Kolkata' } })
   assert.equal(c.caller?.name, 'Zoë Ñandú'); assert.equal(c.place?.time_zone, 'Asia/Kolkata'); assert.deepEqual(c.access?.scopes, ['a', 'b c'])

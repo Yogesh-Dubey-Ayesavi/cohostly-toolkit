@@ -30,6 +30,36 @@
       "prompt": "make my app show the visitor's first name on the homepage, it's a node express app",
       "expected_output": "Recognises this is app code, not hosting, and hands off to cohostly-app-code (reading the verified context, handling a missing name because of consent). Does not deploy or change any settings.",
       "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "ok the express app in ./shop works on my machine with npm start. put it online as 'shop'",
+      "expected_output": "Has a shell and the app runs here, so it uses snapshot, not a hand-written Dockerfile or settings file: starts the app the production way (the start script), runs `cohostly snapshot -- npm start`, reads the TODO(cohostly) lines at the top of .cohostly/Dockerfile, runs `cohostly deploy`, and reports the address only after it prints one. Does not print or ask for secret values.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I only have the cohostly MCP tools here, no terminal. deploy the folder I attached",
+      "expected_output": "No shell, so no snapshot: uses the MCP `deploy` tool (get_upload_url if the code is big), lets Railpack plan, shows the draft if it returns needs_confirmation, and does not claim it is live until deploy returns Live: with an address.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "cohostly snapshot says binds_loopback for my fastify server and nothing got uploaded",
+      "expected_output": "Explains the app only listens on 127.0.0.1, so nothing outside its container can reach it, and nothing was uploaded; fixes the cause in the code (listen on 0.0.0.0 or read HOST, with PORT from the environment) or asks before editing; runs `cohostly snapshot` again and only then reports success.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "deploy keeps failing with code build_failed_dependency, I've tried it twice already, just try again",
+      "expected_output": "Counts two failed tries already made and does not deploy a third time. Reports what was tried, the code and cause the platform gave, and what still looks wrong, and asks the person for the one thing it cannot see. Does not retry in a loop.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "snapshot picked the wrong build command, it used 'npm run build' but my app needs 'npm run build:prod'. it failed in the build step",
+      "expected_output": "Fixes only the one wrong thing: changes the build step in .cohostly/cohostly.json or copies .cohostly/Dockerfile to ./Dockerfile and edits only the build line (`npm run build:prod`), then redeploys. Does not copy every detected setting into a pinned settings file, and says the other settings are still detected.",
+      "files": []
     }
   ]
 }

@@ -2,6 +2,26 @@
 
 All notable changes to `@cohostly/sdk`. Versions follow semver; while the major version is 0, a minor bump may change behaviour.
 
+## 0.2.1
+
+### Fixed
+
+- **An app no longer rejects its own signed-in visitors as "the token is for a different app".** The token is issued for the address the visitor used. `context()` and `middleware()` read it from `X-Platform-App-Host`, which the platform now sends on every request, and fall back to `X-Forwarded-Host` and then `Host` (the first entry of a list). A proxy between the platform and the app can rewrite the last two, which is how an app saw an address that was not the visitor's. Apps that set `audience` by hand to work around this can drop it. The error now says both addresses.
+
+### Added
+
+- `appHost(request)`: the address the token must be issued for, for code that verifies the token itself.
+
+## 0.2.0
+
+### Changed
+
+- **A personal field the person does not share is now `null`, not missing.** `caller.name`, `caller.email` and `caller.avatar_url` are typed `string | null`. When the app asked for one and the person does not share it, the value is `null` and `<name>_status` is `'not_shared'` (for example `caller.email_status`), from the request headers and from the signed token alike, so an app can tell "not shared" from "never asked". TypeScript code that treated these as `string | undefined` needs a null check. A field the person does share is unchanged.
+
+### Added
+
+- **`CONTEXT_FIELD_STATUS_HEADERS`**: the header that carries each field's `not_shared` status (for example `X-Platform-Caller-Email-Status`).
+
 ## 0.1.1
 
 ### Fixed
@@ -9,7 +29,7 @@ All notable changes to `@cohostly/sdk`. Versions follow semver; while the major 
 - **Connection calls no longer fail with `path_refused`.** `platform.connections.<name>.get({ path })` (and `post`, `put`, `patch`, `delete`) percent-encoded every `/` in the provider path, so `v4/spreadsheets/ID` went out as `v4%2Fspreadsheets%2FID` and the platform refused it ("The path has an encoded dot, slash, backslash or percent sign"). The path now keeps its slashes and any `?query`, and each segment is encoded. Only a connection's `{path}` is treated this way; every other path parameter is still fully encoded.
   If you added a workaround that decodes the path before sending (a custom `fetch` that undoes the encoding), you can remove it. Leaving it in does no harm.
 - **The context-verification middleware now says why it refused a request.** When `middleware()` answers 401 "The platform's context for this request could not be verified", the reason (wrong host, expired token, keys not reachable) is written to the app's log on a line starting `[platform] context not verified:`. The visitor still sees only the generic message.
-  This pairs with a platform change: the proxy now sends `X-Forwarded-Host`, so the token's audience is checked against the address the visitor used. Before it, signed-in requests to apps on the E2B provider could not verify.
+  This pairs with a platform change: the proxy now sends `X-Forwarded-Host`, so the token's audience is checked against the address the visitor used. Before it, signed-in requests to apps on the new hosting provider could not verify.
 
 ### Added
 

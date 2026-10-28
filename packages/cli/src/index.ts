@@ -1,4 +1,8 @@
 import { handleDeploy } from './commands/deploy.js';
+import * as path from 'node:path';
+import { deployFromSnapshot, runCaptureTool } from './commands/folder.js';
+import { hasSnapshot } from './snapshot-folder.js';
+import { handlePack, handleInspect, deploySnapshotFile } from './commands/snapshot.js';
 import { handleVersions } from './commands/versions.js';
 import { handlePromote } from './commands/promote.js';
 import { handleRollback } from './commands/rollback.js';
@@ -21,11 +25,11 @@ import { handleApprovals } from './commands/approvals.js';
 import { handleShare } from './commands/share.js';
 import { installAuth, handleLogin, handleLogout, handleWhoami } from './auth.js';
 
-const API_URL = process.env.API_URL || 'http://127.0.0.1:8000';
+const API_URL = process.env.API_URL || 'https://api.cohostly.cloud';
 const PROXY_URL = process.env.PROXY_URL || 'http://127.0.0.1:8080';
 
 export async function main() {
-  const args = process.argv.slice(2);
+  let args = process.argv.slice(2);
   const command = args[0];
   installAuth(API_URL);
 
@@ -44,8 +48,26 @@ export async function main() {
     case 'whoami':
       await handleWhoami(API_URL);
       break;
-    case 'deploy':
-      await handleDeploy(args.slice(1), API_URL);
+    case 'deploy': {
+      // --verbose / -v shows every build line; it is not one of the deploy commands' own flags, so it is taken out here.
+      if (args.some((a) => a === '--verbose' || a === '-v')) { process.env.PLATFORM_VERBOSE = '1'; args = args.filter((a) => a !== '--verbose' && a !== '-v'); }
+      const snap = args.slice(1).find((a) => a.endsWith('.cohostly') && !a.startsWith('--'));
+      const folder = path.resolve(args.slice(1).find((a, i) => !a.startsWith('--') && args[i] !== '--project') ?? '.');
+      if (!snap && hasSnapshot(folder) && !args.includes('--manifest')) await deployFromSnapshot(args.slice(1), API_URL);
+      else if (snap) await deploySnapshotFile(snap, args.slice(1), API_URL); else await handleDeploy(args.slice(1), API_URL);
+      break;
+    }
+    case 'pack':
+      await handlePack(args.slice(1), API_URL);
+      break;
+    case 'inspect':
+      handleInspect(args.slice(1));
+      break;
+    case 'snapshot':
+      await runCaptureTool('snapshot', args.slice(1), API_URL);
+      break;
+    case 'check':
+      await runCaptureTool('check', args.slice(1), API_URL);
       break;
     case 'open':
       await handleOpen(args.slice(1), API_URL);
@@ -131,12 +153,16 @@ export async function main() {
 }
 
 function printHelp() {
-  console.log(`Usage: platform <command> [options]
+  console.log(`Usage: cohostly <command> [options]
 
 Commands:
   login [--token plk_...]                                                          Sign in (opens your browser), or save a key made in the dashboard
   logout / whoami                                                                  Forget the saved key / show who you are signed in as
-  deploy [dir] [--project name] [--manifest file] [--set setting=value] [--yes]    Deploy an application. With no manifest, at a terminal it shows the settings it worked out and asks first; --yes accepts them without asking (scripts without --yes keep the standard settings)
+  deploy [dir] [--project name] [--manifest file] [--set setting=value] [--yes] [--verbose]    Deploy an application. With no manifest, at a terminal it shows the settings it worked out and asks first; --yes accepts them without asking (scripts without --yes keep the standard settings)
+  pack [dir] --out app.cohostly [--no-secrets] [--env-file f] [--expires 7d]          Seal a folder, its settings and (optionally) its secrets into one .cohostly file only your account can deploy
+  snapshot [--expires 30d] -- <start command ...>                                      Run your app here and write a snapshot to .cohostly/: a Dockerfile (the build plan), cohostly.json (settings) and the values it saw. cohostly snapshot -- npm start
+  check [--generated]                                                              Build and start the Dockerfile that would be deployed (yours in ./Dockerfile, else the generated one) and compare it with the app
+  inspect app.cohostly                                                             Show a .cohostly file's settings, expiry and secret names without opening anything
   new <template> [folder]                                                          Start a small project (static, flask, fastapi, express, go, nextjs) you can deploy as is
   open [project]                                                                   Open the project's web address in your browser
   manifest check [dir] [--manifest file] [--set setting=value]                     Show the effective settings and where each came from

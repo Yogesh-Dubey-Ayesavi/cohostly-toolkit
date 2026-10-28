@@ -1,6 +1,6 @@
 # Bindings and the `platform` object
 
-Read this when the app calls a platform service: the AI gateway, managed data, connections or approvals. Also read it when `check_code` reports a problem with a platform call.
+Read this when the app calls a platform service. The AI gateway and connections are below; managed data, approvals and scheduled jobs each have their own file (`data.md`, `approvals.md`, `cron.md`). Worked apps for all of them are in `assets/examples/` (`recipes.md`). Also read it when `check_code` reports a problem with a platform call.
 
 ## What a binding is
 
@@ -13,13 +13,13 @@ All of these are live. `get_contract` is still the authority on what this projec
 | Binding | Status |
 | --- | --- |
 | Secrets (`env.secrets`) | Live: `env` delivery only |
-| Managed data (`bindings.data`) | Live: one database per project; `describe_data` shows the tables and row rules |
+| Managed data (`bindings.data`) | Live: one database per project; `describe_data` shows the tables and row rules. See `data.md` |
 | AI gateway (`bindings.ai`) | Live |
-| Approvals (`bindings.approvals`) | Live in the dashboard; approval emails are not sent yet |
+| Approvals (`bindings.approvals`) | Live in the dashboard; approval emails are not sent yet. See `approvals.md` |
 | Connections (`bindings.connections.<name>`) | Live: Google and Microsoft. Slack is not set up yet. See "Connections" below |
-| Scheduled jobs (`bindings.cron`) | Live |
+| Scheduled jobs (`bindings.cron`) | Live. See `cron.md` |
 
-Run `get_contract` for what the project's `platform` object can actually call right now. If a call is not in the contract, the code cannot use it, and `check_code` will say so.
+Run `get_contract` for what the project's `platform` object can actually call right now (before the first deploy, `preview_contract` with the settings text does the same; do not deploy a placeholder app just to get it). If a call is not in the contract, the code cannot use it, and `check_code` will say so.
 
 ## The `platform` object
 
@@ -58,6 +58,19 @@ Some stock SDKs can call the AI gateway directly, because the platform gives the
 - `AI_API_KEY` as the client's API key (it is the binding token).
 
 Use this pattern for a stock client; use `platform.ai` when you want the typed contract. Do not hard-code the provider's own address.
+
+## Other languages
+
+The typed `platform` object is TypeScript. In Python, Go or anything else, make a client from the binding's OpenAPI document with any OpenAPI generator. The document is at `<binding url>/openapi.json` (the address is in `PLATFORM_BINDINGS`), requested with the binding token in the `X-Platform-Binding-Token` header. The platform checks that its five binding documents validate and that OpenAPI Generator's Python and Go clients compile (`packages/api/scripts/verify-generated-clients.mjs`).
+
+A generated client covers the calls and their types. It does not cover what an app must do itself:
+
+- verify the request context (`verify-token.md`);
+- send the visitor's token as `X-Platform-Context` on calls made for them, so a row policy or a `user` connection knows who is asking;
+- the per-table types of managed data (the generated client sees `findMany` and a body, not your columns);
+- retries, and an `Idempotency-Key` on writes that must not run twice.
+
+Anything the platform calls into the app (a scheduled job, an approval decision) is a webhook: serve it and check the platform's signature (`approvals.md`, `cron.md`).
 
 ## Connections
 
@@ -102,6 +115,8 @@ await graph.drives.byDriveId('me').items.byDriveItemId(id).content.get()   // 'm
 - The visitor's context goes along automatically when the call is made inside a request the SDK `middleware()` handles, which `access: "user"` needs.
 - Microsoft: v1.0 only (not beta). `@microsoft/msgraph-sdk` is still labelled preview by Microsoft.
 - Errors from the platform (not connected, a file outside the grant, a permission not given) come back through the client as an HTTP error with the platform's `{ error: { code, message, how_to_fix } }` body.
+
+**Many visitors, each with their own account (multi-tenant).** With `access: "user"` the app never runs an OAuth flow, holds a token or keeps a table of who connected what: the Connect button is `connect_url` (the platform's connect page, with the provider's own consent), and the platform picks the connection from the signed request context. Ask `allowed()` first for one of three states per visitor (`not_connected`, `active`, `needs_reauth`) and give each its button; `connect_url` is on all three. `assets/examples/connect-accounts` is the complete app.
 
 **`access: "user"` needs the request context.** The platform finds the visitor's connection from the signed `X-Platform-Context` token, so a call made outside a request (a timer, a job) cannot use it, and the call must happen inside a request the SDK `middleware()` is handling (it forwards the token for you). Without it the call fails with `caller_unknown` (401).
 

@@ -1,4 +1,6 @@
-# manifest.json
+# cohostly.json (the settings file)
+
+The file is `cohostly.json` at the root of the app folder. It has the same settings as the older `manifest.json`, which still works when it is Cohostly's own (a web app's or a browser extension's `manifest.json` is ignored). If both are there, `cohostly.json` is used. "Manifest" is still the name of the idea: the tool `check_manifest` and the `manifest` parameter take the text of this file.
 
 Read this when the person asks for a setting to change, when a draft needs editing, or when `check_manifest` reports a problem.
 
@@ -10,13 +12,12 @@ A project with no manifest deploys. The platform works out the app type, port an
 {
   "manifest_version": 2,
   "name": "calc-history",
-  "visibility": "private",
   "lifetime": { "idle_timeout": "10m" },
   "env": { "secrets": ["STRIPE_KEY"] }
 }
 ```
 
-Every key you leave out takes its default. Check the result with `check_manifest` or `platform manifest check`, which prints each value and where it came from.
+Every key you leave out takes its default. Check the result with `check_manifest` or `platform manifest check`, which prints each value and where it came from. Name the project (`project` / `--project`) to also hear who can ship there and which AI models in the file need a key the account has not saved.
 
 ## Sections
 
@@ -31,7 +32,7 @@ The top-level keys, from the schema (`packages/shared/manifest-schema/manifest.s
 | `lifetime` | `idle_timeout`, `pause_mode`, `max_duration`, `on_timeout`. When the app pauses and how it wakes. |
 | `env` | `vars` (plain values, not secret), `secrets` (names the app needs; values come from the secret store), `strict_secrets`, `inject`. |
 | `health` | `path`, `port`, `timeout_ms` (default 5000). |
-| `visibility` | `private`, `link` or `public` in the manifest. **`account` is not accepted here** even though the sharing tools accept it; the schema and the sharing API disagree (see below). See `auth.md`. |
+| `visibility` | **Ignored.** A deploy never changes who can open an app, so do not write this line: `check_manifest` warns that it does nothing. Only `private`, `link` and `public` are accepted in the file at all (not `account` or `signed_in`). Set sharing with `set_visibility`, `cohostly share` or the dashboard (`auth.md`). |
 | `network` | `egress` (`open` default, or `restricted`), `allowed_hosts`. |
 | `storage` | Stateful apps. See below. |
 | `session_affinity` | Sticky routing mode. |
@@ -43,7 +44,7 @@ The top-level keys, from the schema (`packages/shared/manifest-schema/manifest.s
 
 From `packages/image-builder/src/defaults.ts` and the Phase 6 decision:
 
-- visibility `link`
+- visibility: not set by the file (the project starts `private`; see `auth.md`)
 - memory 512 MB
 - idle timeout 10 minutes
 - pause mode `memory`
@@ -66,7 +67,7 @@ Validation errors name the field and the allowed pattern in plain words. Fix the
 
 - `runtime.engine` present with `unikraft`: remove the line.
 - A binding name that is reserved (`ai`, `approvals`, `data`, `connections`, `bindings`, `platform`) used as a connection name: rename it. Names are API; once an app's code uses a name, renaming it breaks the app, so ask before renaming.
-- Memory below 256 or above 1024: an error. Pick a value in range.
+- Memory below 256 or above 2048: an error. The sizes are 256, 512, 1024 and 2048 MB; a value between two sizes rounds up. Pick a value in range.
 
 ## Changing a deployed app's settings
 

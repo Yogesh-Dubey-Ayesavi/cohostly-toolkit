@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: signup-form-to-google-sheet
+expected_outcome: |
+  Uses a Google Sheets connection through the platform with the official client, and does not take or embed the service account key. Handles the case where nobody has connected the sheet yet.

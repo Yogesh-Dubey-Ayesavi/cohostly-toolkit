@@ -9,7 +9,7 @@ export async function handleBindings(args: string[], apiUrl: string) {
   const j = (await r.json().catch(() => ({}))) as any;
   if (!r.ok) fail(j.error ?? `Could not read the project's bindings (HTTP ${r.status}).`);
   const declared = j.bindings.filter((b: any) => b.declared);
-  if (!declared.length) console.log('This project declares no bindings. Add one under "bindings" in manifest.json and deploy.');
+  if (!declared.length) console.log('This project declares no bindings. Add one under "bindings" in cohostly.json and deploy.');
   for (const b of declared) console.log(`${b.name.padEnd(12)} ${j.live_version ? 'active' : 'declared'}  last used ${when(b.last_used_at)}  ${b.capability}`);
   const other = j.bindings.filter((b: any) => !b.declared).map((b: any) => b.name);
   if (other.length) console.log(`Available, not used: ${other.join(', ')}`);

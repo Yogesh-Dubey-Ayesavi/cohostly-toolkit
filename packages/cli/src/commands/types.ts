@@ -2,6 +2,7 @@ import * as os from 'node:os';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { runTypes } from '@cohostly/sdk';
+import { findManifestFile } from '../manifest-file.js';
 
 // `platform types --project <name> [--check] [--out dir]`: writes platform.gen.ts (the typed `platform` object) and platform.contract.md into the project.
 // It makes a short-lived dev token, asks the gateway for the OpenAPI document of each binding the project declared, generates the types from those documents
@@ -9,7 +10,7 @@ import { runTypes } from '@cohostly/sdk';
 
 /** What the contract WOULD be for this folder's manifest and migrations, asked of the platform without deploying anything. */
 export async function localPreview(apiUrl: string, dir: string, manifestText?: string): Promise<{ typescript: string; python: string; summary: string; fingerprint: string; declared: string[] }> {
-  const manifest = manifestText ?? (fs.existsSync(path.join(dir, 'manifest.json')) ? fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8') : '{}');
+  const manifest = manifestText ?? (findManifestFile(dir)?.text ?? '{}');
   const md = path.join(dir, 'migrations');
   const migrations = fs.existsSync(md) ? fs.readdirSync(md).filter((f) => f.endsWith('.sql') && !f.startsWith('.')).sort().map((name) => ({ name, sql: fs.readFileSync(path.join(md, name), 'utf8') })) : [];
   const r = await fetch(`${apiUrl}/v1/contract-preview`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ manifest_content: manifest, migrations }) });

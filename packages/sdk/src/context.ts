@@ -85,7 +85,7 @@ export async function verifyContextToken(token: string, o: VerifyOptions = {}): 
   const issuer = o.issuer ?? env('PLATFORM_AUTH_URL')?.replace(/\/$/, '')
   if (issuer && claims.iss !== issuer) throw new ContextVerificationError('the token was issued by a different platform')
   if (!o.audience) throw new ContextVerificationError('say which host this app is served at (audience), or call context(request), which reads it from the request')
-  if (claims.aud !== o.audience.toLowerCase()) throw new ContextVerificationError('the token is for a different app')
+  if (claims.aud !== o.audience.toLowerCase()) throw new ContextVerificationError(`the token is for a different app (it is for ${claims.aud}, and the request arrived as ${o.audience.toLowerCase()})`)
   return { ...(claims.ctx ?? {}), _claims: { iss: claims.iss, aud: claims.aud, sub: claims.sub, exp: claims.exp, iat: claims.iat, jti: claims.jti } }
 }
 
@@ -105,8 +105,16 @@ export function getHeader(h: HeadersLike, name: string): string | undefined {
 export async function context(request: HeadersLike, o: VerifyOptions = {}): Promise<VerifiedContext | undefined> {
   const token = getHeader(request, 'x-platform-context')
   if (!token) return undefined
-  const host = o.audience ?? getHeader(request, 'x-forwarded-host') ?? getHeader(request, 'host') ?? (() => { try { return new URL((request as Request).url).host } catch { return undefined } })()
-  return verifyContextToken(token, { ...o, audience: host })
+  return verifyContextToken(token, { ...o, audience: o.audience ?? appHost(request) })
+}
+
+/**
+ * The address the visitor used, which the token is issued for. The platform sends it as X-Platform-App-Host. X-Forwarded-Host is the older route to the same
+ * fact and is used if that header is absent, but a proxy between the platform and the app may rewrite it, so it is only a fallback. Then the Host header.
+ */
+export function appHost(request: HeadersLike): string | undefined {
+  const first = (v?: string) => v?.split(',')[0].trim() || undefined
+  return first(getHeader(request, 'x-platform-app-host')) ?? first(getHeader(request, 'x-forwarded-host')) ?? first(getHeader(request, 'host')) ?? (() => { try { return new URL((request as Request).url).host } catch { return undefined } })()
 }
 
 /** The headers read as a context, without verifying anything. Convenient for display and logging; never base access decisions on it. */

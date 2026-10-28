@@ -20,26 +20,36 @@ Rules to repeat to the person when relevant:
 
 ## Visibility: who can open the app's address
 
+The current list of levels, as data: `platform://reference/visibility`. If an app has its own login (Supabase, Firebase, Auth0), read `cohostly-app-code/references/sign-in.md` before choosing a level: a login behind `private`, `account` or `signed_in` is never reached by anonymous visitors.
+
+There are five levels, from narrowest to widest. `set_visibility` and `platform share` take all five.
+
 | Level | Who can open the app |
 | --- | --- |
 | `private` | Only people the project is shared with, and the account's owners and admins. |
 | `account` | Any signed-in member of the owning account. |
-| `link` | Anyone who has the address. The address has a random suffix, so it cannot be guessed, but anyone holding it can open it. |
+| `signed_in` | Anyone with a Cohostly account, once they sign in. An anonymous visitor cannot. Signing up is open to everyone, so this is nearly as wide as `link`. People who open it without being invited or in the owning account are listed as visitors on the project's Users tab, and a visitor's name and email are shown only if they agreed. |
+| `link` | Anyone who has the address, signed in or not. The address has a random suffix, so it cannot be guessed, but anyone holding it can open it. |
 | `public` | Anyone on the internet, and it may be listed. |
+
+The dashboard's Sharing screen shows four cards: only people invited, everyone in my account, anyone signed in to Cohostly, and anyone with the link. It shows "anyone on the internet" (`public`) only for an app that already is, so a person looking at the dashboard will not find it there. Use the same plain words the dashboard does when you talk to the person.
 
 Defaults, and a trap to check:
 
-- The **manifest** default is `link` (`packages/image-builder/src/defaults.ts`).
-- The **project record** defaults to `private` in the database.
-- These are not reconciled in code yet. After a first deploy, call `describe_project` and read the visibility it reports. If it is not what the person wants, call `set_visibility`. Do not assume.
+- The **manifest** can name a visibility, but it is ignored: a deploy never changes sharing, and `check_manifest` warns when the line is there. Do not write it.
+- A new project starts `private`. After a first deploy, call `describe_project` and read the visibility it reports, tell the person, and call `set_visibility` only once they choose. Do not assume.
 
-Also note: the manifest schema accepts only `private`, `link` and `public`. `account` works through `set_visibility` and the dashboard but a manifest that sets it fails validation. If the person wants account-wide access, set it with `set_visibility` after the deploy, not in the manifest.
+Only `private`, `link` and `public` are even accepted in a settings file; `account` and `signed_in` are set with `set_visibility`, `platform share` or the dashboard after the deploy.
 
-Changing to `public` or `link` is a decision for the person. Say what it means in one sentence first: "anyone with the link can open it, and it can be found by anyone if public".
+Opening an app wider than it is now (to `signed_in`, `link` or `public`) is a decision for the person. Say what it means in one sentence first: "anyone with the link can open it, signed in or not" or "anyone with a Cohostly account can open it".
+
+**Widening is held for an account owner or admin.** If the person asking is not one, or an assistant is asking for anyone, `set_visibility` answers `awaiting_approval` with an approval id and a link, and the app stays exactly as it was until an owner or admin approves it (`list_approvals`, `decide_approval`). Tell the person that, and give them the link; do not say it is changed. Narrowing (toward `private`) takes effect at once.
 
 Access checks happen on every request at the proxy. A change takes effect within about 30 seconds, usually at the next request. A browser that is not signed in is sent to sign in; a script or a signed-in stranger with no access gets a plain "not found", so the app does not reveal that it exists.
 
 ## Roles
+
+What each role may do, built from the action registry: `platform://reference/roles`.
 
 On a project:
 
@@ -50,6 +60,8 @@ On a project:
 | admin | Also change sharing and visibility. |
 
 On an account: `owner`, `admin` or `member`. Account owners and admins can act as admin on every project in the account and can delete. A plain member sees a project only when its visibility is `account`, or when they were invited.
+
+What belongs to the account and not to one project (owners and admins manage these; see `account.md`): shared secrets, the account's own AI provider keys, connections to outside services, who may approve opening an app wider or raising a spend limit (approval rights), and the account's activity log.
 
 When sharing, pick the lowest role that does the job. `viewer` is the default for a reason. Ask before giving `admin`.
 

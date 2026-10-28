@@ -1,0 +1,7 @@
+{
+  "manifest_version": 2,
+  "name": "sheet-form",
+  "health": { "port": 3000 },
+  "env": { "vars": { "SHEET_ID": "replace-with-your-spreadsheet-id" } },
+  "bindings": { "connections": { "sheet": { "provider": "google-sheets", "permissions": ["sheets.write"], "access": "owner" } } }
+}
