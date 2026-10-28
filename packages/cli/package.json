@@ -2,7 +2,7 @@
   "name": "cohostly",
   "version": "0.1.0",
   "description": "Put an app online and share it: cohostly snapshot, check and deploy.",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "type": "module",
   "bin": {
     "cohostly": "bin/platform",

@@ -51,4 +51,4 @@ If you write the Dockerfile yourself, add a bare `ARG NAME` before the build ste
 
 ## These examples are tested against the SDK
 
-`node packages/api/scripts/verify-skill-examples.mjs [example ...]` (from the repo root, needs the network) generates each example's `platform.gen.ts` with the SDK's own `platform types`, installs its dependencies, type-checks it, then runs it with the environment the platform gives an app and drives it with signed visitor contexts against a stand-in gateway. If you change an example, run it.
+The platform repository has a verification script (`verify-skill-examples`) that, with network access, generates each example's `platform.gen.ts` with the SDK's own `platform types`, installs its dependencies, type-checks it, then runs it with the environment the platform gives an app and drives it with signed visitor contexts against a stand-in gateway. If you change an example, run it.

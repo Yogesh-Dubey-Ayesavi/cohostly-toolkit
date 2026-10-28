@@ -42,7 +42,7 @@ The top-level keys, from the schema (`packages/shared/manifest-schema/manifest.s
 
 ## Defaults
 
-From `packages/image-builder/src/defaults.ts` and the Phase 6 decision:
+The platform applies these defaults:
 
 - visibility: not set by the file (the project starts `private`; see `auth.md`)
 - memory 512 MB

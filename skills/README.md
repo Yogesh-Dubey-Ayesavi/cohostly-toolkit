@@ -1,6 +1,6 @@
 # Cohostly agent skills
 
-Two skills teach an AI agent to use Cohostly. They live in this repo so they change in the same commit as the platform behaviour they describe.
+Two skills teach an AI agent to use Cohostly. They live in this repo and the platform serves them from here, so a merged change reaches agents without a platform deploy. The platform repository checks them against its own behaviour in its CI, so a skill cannot drift from what the platform does.
 
 | Skill | Audience | Triggers when the person says... |
 | --- | --- | --- |
@@ -38,9 +38,9 @@ skills/<name>/
 ├── evals/<case>/         # newer tests: prompt.md, case.yaml and graders/ (what skill-creator writes)
 ```
 
-Lists that the platform itself holds (visibility levels, roles, approval kinds, project states, failure codes, limits, context and settings fields) are **not** written into the skills. They are served as data (`platform://reference/<name>`, built in `packages/api/src/mcp/reference.ts` from the tables the platform runs on), and a skill links to them. `packages/api/src/skills-cover-platform.test.ts` fails when a list, a tool, a prompt or a failure code is in the platform and in no skill.
+Lists that the platform itself holds (visibility levels, roles, approval kinds, project states, failure codes, limits, context and settings fields) are **not** written into the skills. They are served as data (`platform://reference/<name>`, built in `packages/api/src/mcp/reference.ts` from the tables the platform runs on), and a skill links to them. The platform's CI fails when a list, a tool, a prompt or a failure code is in the platform and in no skill.
 
-Examples are real, not sketches. `packages/api/src/skill-examples.test.ts` checks that every example's settings file passes the platform's own resolver, every policy line parses, only existing `platform.data` calls are used, and the code parses, so an example cannot go stale without a test failing. Add a script only for something deterministic that would otherwise be rewritten each time.
+Examples are real, not sketches. The platform's CI checks that every example's settings file passes the platform's own resolver, every policy line parses, only existing `platform.data` calls are used, and the code parses, so an example cannot go stale without a test failing. Add a script only for something deterministic that would otherwise be rewritten each time.
 
 ### Frontmatter
 
