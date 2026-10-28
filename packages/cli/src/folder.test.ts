@@ -41,7 +41,11 @@ function listing(tgz: Buffer): string {
 function fileIn(tgz: Buffer, name: string): string {
   const f = path.join(os.tmpdir(), `snap-test-${process.pid}-${Math.random().toString(36).slice(2)}.tgz`);
   fs.writeFileSync(f, tgz);
-  try { return execFileSync('tar', ['-xzOf', f, `./${name}`], { encoding: 'utf8' }); } finally { fs.rmSync(f, { force: true }); }
+  try {
+    // GNU tar and bsdtar disagree on whether the member is stored as "./name" or "name", so ask the archive which.
+    const member = execFileSync('tar', ['-tzf', f], { encoding: 'utf8' }).split('\n').find((m) => m === name || m === `./${name}`);
+    return execFileSync('tar', ['-xzOf', f, member ?? name], { encoding: 'utf8' });
+  } finally { fs.rmSync(f, { force: true }); }
 }
 
 test('a folder is a snapshot only when it has the settings file', () => {
