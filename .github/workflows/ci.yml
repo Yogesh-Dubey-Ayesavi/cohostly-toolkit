@@ -21,6 +21,9 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: packages/${{ matrix.package }}/package-lock.json
+      - if: matrix.package == 'cli'
+        run: npm ci && npm run build
+        working-directory: packages/sdk
       - run: npm ci
       - run: npm run build
       - run: npm test
