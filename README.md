@@ -2,15 +2,15 @@
 
 The public tools for [Cohostly](https://cohostly.cloud): a command line to put an app online and share it, an SDK for the code that runs there, and the skills that teach an AI agent to do both.
 
-> **Status: early.** The repository is set up first and the code moves in from the private monorepo package by package. The table below says what is here today.
+> **Status: early.** The CLI, SDK and skills are imported with their history from the private monorepo. Both packages are on `0.x`.
 
 ## What is in the toolkit
 
 | Part | What it does | Where | Status |
 | --- | --- | --- | --- |
-| **CLI** `cohostly` | `snapshot`, `check`, `deploy`, `share` from your terminal | `packages/cli` | planned |
-| **SDK** `@cohostly/sdk` | Verify who is calling your app, call platform bindings (AI, data, cron) with typed methods | `packages/sdk` | planned |
-| **Skills** | `cohostly-host` (deploy and share) and `cohostly-app-code` (write code that runs on Cohostly), plus runnable example apps | `skills/` | planned |
+| **CLI** `cohostly` | `snapshot`, `check`, `deploy`, `share` from your terminal | `packages/cli` | live |
+| **SDK** `@cohostly/sdk` | Verify who is calling your app, call platform bindings (AI, data, cron) with typed methods | `packages/sdk` | live |
+| **Skills** | `cohostly-host` (deploy and share) and `cohostly-app-code` (write code that runs on Cohostly), plus runnable example apps | `skills/` | live |
 
 ## Supported
 
@@ -30,8 +30,8 @@ The public tools for [Cohostly](https://cohostly.cloud): a command line to put a
 
 | Item | Version |
 | --- | --- |
-| `cohostly` CLI | `0.1.0` (when moved in) |
-| `@cohostly/sdk` | `0.2.1` (when moved in) |
+| `cohostly` CLI | `0.1.0` |
+| `@cohostly/sdk` | `0.2.1` |
 | Node.js (`engines`) | `>=20` |
 | TypeScript | `^5.5` |
 | Railpack (downloaded by the CLI) | pinned by the CLI, checked against a checksum |

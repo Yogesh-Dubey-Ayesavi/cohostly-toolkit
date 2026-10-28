@@ -8,13 +8,13 @@ The public part of Cohostly: the command line (`cohostly`), the app-side SDKs (`
 
 ## Layout
 
-Status key: **live** = in this repo now, **planned** = moves here from the private repo, not yet present.
+Status key: **live** = in this repo now, **planned** = not yet present.
 
 | Path | What | Status |
 | --- | --- | --- |
-| `packages/cli` | The `cohostly` command line (npm: `cohostly`) | planned |
-| `packages/sdk` | The app-side SDK (npm: `@cohostly/sdk`) | planned |
-| `skills/<name>/` | Agent skills: `SKILL.md`, `references/`, `assets/`, `scripts/`, `evals/` | planned |
+| `packages/cli` | The `cohostly` command line (npm: `cohostly`) | live |
+| `packages/sdk` | The app-side SDK (npm: `@cohostly/sdk`) | live |
+| `skills/<name>/` | Agent skills: `SKILL.md`, `references/`, `assets/`, `scripts/`, `evals/` | live |
 | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, `LICENSE` | Repository health files | live |
 
 Do not create an empty folder for a planned item. Add it in the change that moves the code.
