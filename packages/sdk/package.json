@@ -1,0 +1,29 @@
+{
+  "name": "@cohostly/sdk",
+  "version": "0.2.1",
+  "type": "module",
+  "files": [
+    "dist",
+    "!dist/**/*.test.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/context.test.js dist/platform.test.js dist/approvals.test.js dist/log.test.js dist/cron.test.js dist/providers.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
+  },
+  "bin": {
+    "cohostly-sdk": "dist/cli.js"
+  }
+}

@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: python-chatbot-api-from-example
+expected_outcome: |
+  Starts from the platform's AI gateway pattern: the stock client pointed at AI_BASE_URL with AI_API_KEY, the model listed in bindings.ai.models, and no provider key anywhere.
