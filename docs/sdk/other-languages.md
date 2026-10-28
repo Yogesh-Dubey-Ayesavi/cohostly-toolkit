@@ -50,7 +50,7 @@ A generated client covers the calls and their types. It does not cover what your
 - Check the visitor's token (above).
 - Send the visitor's token as `X-Platform-Context` on calls made for them, so a row rule or a "connect as the visitor" connection knows who is asking.
 - The per-table types of your database. A generated client sees `findMany` and a body, not your columns.
-- Retries, and an `Idempotency-Key` on writes that must not run twice.
+- Retries. Approval requests accept an `Idempotency-Key` header, so a retry does not make a second request.
 
 Anything the platform calls **into** your app, such as a scheduled job or an approval decision, is a web hook. Serve it and check the platform's signature (see [approvals](../bindings/approvals.md) and [the clock](../bindings/cron.md)).
 

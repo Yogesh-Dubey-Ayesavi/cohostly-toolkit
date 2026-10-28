@@ -71,7 +71,6 @@ An entry is a domain, a subdomain wildcard, an IPv4 address or an IPv4 range. UR
 Errors name the field and the allowed pattern in plain words. Fix the field the message names.
 
 - `runtime.engine` is gone. `auto` and `linux` are ignored with a notice and `unikraft` is refused, so remove the line.
-- A reserved name used as a connection name (`ai`, `approvals`, `data`, `connections`, `bindings`, `platform`): rename it. Names become part of your code, so renaming later breaks the app.
 - Memory below 256 or above 2048: pick a value in range.
 
 ## Changing a deployed app

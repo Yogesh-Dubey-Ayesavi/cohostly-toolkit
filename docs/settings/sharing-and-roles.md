@@ -12,7 +12,7 @@ nav: Sharing and roles
 | A person using an AI assistant | They sign in once in the browser and approve a consent screen. Access lasts 30 minutes and refreshes for up to 30 days. | The assistant stores it. |
 | A script or CI job | An API key (`plk_...`) for an account or one project, made by a person. | The CI secret store. Never the repository. |
 
-Using a person's key in CI, or sharing one key in a chat, is the most common mistake. A key is shown once. If it is lost, make a new one and end the old one. Removing a person from a project also ends the connections they made to it.
+Using a person's key in CI, or sharing one key in a chat, is the most common mistake. A key is shown once. If it is lost, make a new one and end the old one.
 
 ## Who can open an app
 

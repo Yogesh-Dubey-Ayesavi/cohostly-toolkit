@@ -18,7 +18,7 @@ This writes `platform.gen.ts` (and `platform.contract.md`, a readable list of wh
 import platform from './platform.gen.js'
 
 const reply = await platform.ai.messages({
-  model: 'claude-haiku-5-5',
+  model: 'gemini-3.5-flash-lite',
   messages: [{ role: 'user', content: 'hi' }],
 })
 ```
@@ -33,7 +33,7 @@ If a call is not in the generated file, your code cannot use it, and `cohostly d
 | --- | --- |
 | Token | Reads `PLATFORM_TOKEN` and sends it. You never handle it. |
 | Request ids | Each call carries an id, so a problem can be traced. |
-| Safe repeats | State-changing calls carry an `Idempotency-Key`, the same one on every retry, so a retry does not do the thing twice. You may pass your own. |
+| Safe repeats | Approval requests accept an `Idempotency-Key`: the same key with the same request returns the first result instead of making a second one. For other writes, do not count on the platform to drop repeats; make your own code safe to run twice. |
 | Timeouts | 30 seconds per attempt by default (`timeoutMs`). |
 | Retries | Two extra attempts for network errors and for status 429, 502, 503 and 504 (`retries`). |
 | Errors | Anything else throws a `PlatformError`. |
@@ -50,7 +50,7 @@ try {
 } catch (e) {
   if (e instanceof PlatformError) {
     // e.status   the HTTP status
-    // e.code     a stable name, such as 'rejectedByPolicy' or 'connection_required'
+    // e.code     a stable name, such as 'invalid_request' or 'connection_required'
     // e.message  a plain sentence you can show
     // e.howToFix what to do about it
     // e.requestId, e.details, e.connectUrl (for a connection that needs connecting)

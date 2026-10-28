@@ -24,7 +24,7 @@ It is written in Python, but nothing in it is Python-only. The same idea works i
   "name": "ai-chat-fastapi",
   "runtime": { "entrypoint": "uvicorn main:app --host 0.0.0.0 --port 3000" },
   "health": { "port": 3000, "path": "/health" },
-  "bindings": { "ai": { "models": ["claude-haiku-5-5"], "monthly_cap_usd": 5 } }
+  "bindings": { "ai": { "models": ["gemini-3.5-flash-lite"], "monthly_cap_usd": 5 } }
 }
 ```
 
@@ -55,7 +55,7 @@ def health():
 def ask(body: Ask):
     try:
         reply = client.chat.completions.create(
-            model="claude-haiku-5-5",  # must be in bindings.ai.models
+            model="gemini-3.5-flash-lite",  # must be in bindings.ai.models
             messages=[{"role": "user", "content": body.question}],
         )
     except Exception as e:  # a cap reached or a model not allowed comes back as a plain message: show it, do not retry in a loop

@@ -101,7 +101,7 @@ Add the same `tsconfig.json` as in [Private notes](./private-notes.md).
 
 **The callback.** When the person answers, the platform calls your app on the path above. It wakes the app if it was asleep. The SDK checks that the call really comes from the platform and has not been changed on the way, then runs your `handler`.
 
-- The answer is `d.status`: `approved`, `denied`, `expired` or `cancelled`. Only `approved` means go. Everything else means do nothing.
+- The answer is `d.status`: `approved`, `denied` or `expired`. Only `approved` means go. Everything else means do nothing.
 - `done` is the app's memory of requests it already handled. The platform may call twice, so the second time the app sees the id and stops.
 
 > **Good to know** This sample keeps its list in memory, which a restart empties. In a real app, keep those ids in the small database, as the [morning summary](./morning-summary.md) does with run ids.

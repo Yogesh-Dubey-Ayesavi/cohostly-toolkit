@@ -12,7 +12,7 @@ An **account** is the workspace that owns projects. Each person in it is an `own
 | --- | --- |
 | Secrets | A secret normally belongs to one project. `cohostly secrets share` moves it to the whole account so other projects can use it. Only owners and admins can. |
 | AI provider keys | Needed for models the platform does not provide. Only owners and admins can add them. See [AI](../bindings/ai.md). |
-| Connections | Links to outside services (Google, Microsoft) that apps use. Removing a person from a project ends the connections they made to it. |
+| Connections | Links to outside services (Google, Microsoft) that apps use. |
 | API keys (`plk_...`) | Scoped to the whole account or to one project, and made by a person. |
 | Activity | The account's log of who changed what. |
 | Approval rights | Who may approve opening an app wider, or raising a spending limit. |
