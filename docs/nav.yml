@@ -1,0 +1,39 @@
+groups:
+  - id: start
+    label: Start here
+    summary: What Cohostly is, how an app lives on it, and your first app online in five minutes.
+    art: { scene: lunch, seed: 3, view: "0 0 300 320", caption: everyone at the table. }
+    pages: [index, start/what-is-cohostly, start/quickstart, start/how-apps-run]
+  - id: cli
+    label: Command line
+    summary: Every cohostly command, with the options that matter and what they print.
+    art: { scene: kite, seed: 9, view: "300 0 300 320", caption: one command, then it flies. }
+    pages: [cli/overview, cli/login-and-keys, cli/new-templates, cli/deploy, cli/pack, cli/snapshot, cli/projects, cli/versions-and-rollback, cli/backup-and-restore, cli/sharing, cli/domains, cli/ship, cli/secrets, cli/tokens, cli/ai-keys, cli/develop, cli/cost, cli/jobs-and-approvals, cli/approvals-command, cli/exit-codes-and-env]
+  - id: sdk
+    label: SDK
+    summary: "@cohostly/sdk: know who is visiting and call platform services with typed methods."
+    languages: true
+    art: { scene: picnic, seed: 5, view: "0 0 300 320", caption: bring a basket, the table is set. }
+    pages: [sdk/setup, sdk/request-context, sdk/platform-object, sdk/other-languages]
+  - id: bindings
+    label: Bindings
+    summary: "Services the platform lends your app: AI, a database, Google and Microsoft, approvals, a clock."
+    languages: true
+    art: { scene: birthday, seed: 11, view: "300 0 300 320", caption: a little help from friends. }
+    pages: [bindings/overview, bindings/ai, bindings/ai-models-and-costs, bindings/ai-bring-your-own-key, bindings/ai-http-and-streaming, bindings/ai-errors, bindings/data, bindings/data-tables-and-migrations, bindings/data-row-rules, bindings/data-sdk-reference, bindings/data-keys-and-tester, bindings/data-errors-and-limits, bindings/data-local-development, bindings/data-patterns, bindings/data-worked-schemas, bindings/connections, bindings/connections-modes, bindings/connections-google-permissions, bindings/connections-microsoft-permissions, bindings/connections-picked-files, bindings/connections-connect-flows, bindings/connections-calling-the-api, bindings/connections-allowed, bindings/connections-write-approval, bindings/connections-errors, bindings/connections-limits, bindings/connections-examples, bindings/approvals, bindings/approvals-kinds, bindings/approvals-requesting-from-your-app, bindings/approvals-callbacks-and-waiting, bindings/approvals-who-decides, bindings/approvals-limits, bindings/approvals-errors, bindings/cron, bindings/cron-schedules-and-syntax, bindings/cron-what-your-app-receives, bindings/cron-code-and-timers, bindings/cron-failures-and-history, bindings/cron-limits, bindings/cron-errors, bindings/environment, bindings/environment-your-own-values, bindings/environment-restarts-and-local]
+  - id: settings
+    label: Settings and sharing
+    summary: The cohostly.json file, who can open an app, roles, and what the account owns.
+    art: { scene: lunch, seed: 21, view: "300 0 300 320", caption: who sits where. }
+    pages: [settings/cohostly-json, settings/sharing-and-roles, settings/account]
+  - id: limits
+    label: Limits and fixes
+    summary: What the platform will and will not do, the numbers, and what to do when something breaks.
+    art: { scene: kite, seed: 14, view: "0 0 300 320", caption: know the length of the string. }
+    pages: [limits/limits, limits/troubleshooting]
+  - id: examples
+    label: Sample apps
+    summary: Small, complete apps explained in everyday words. Copy one and change it.
+    languages: true
+    art: { scene: picnic, seed: 8, view: "300 0 300 320", caption: pick one and make it yours. }
+    pages: [examples/overview, examples/put-your-app-online, examples/hello-visitor, examples/private-notes, examples/ai-helper, examples/morning-summary, examples/ask-before-deleting, examples/signup-sheet, examples/members-only-page]
