@@ -3,9 +3,11 @@ import * as path from 'node:path';
 
 // Phase 25b step 8: a .env file is read here for its values and never uploaded as source. The values travel in the deploy request's `secrets` field,
 // the names are printed, the values never are. The file list, the order and the parser match packages/image-builder/src/env-detect.ts (the same test cases run in both).
+// Which files are env files, and their order, is written once in the platform repo (packages/shared/env-files.json); env-files.generated.ts is that rule, copied by its `make schema`.
+import { orderEnvFiles } from './env-files.generated.js';
+export { envFileRank } from './env-files.generated.js';
 
-/** Env files at the folder's root, lowest priority first: the later one wins for a name (the order Next.js uses for production). */
-export const ENV_FILES = ['.env', '.env.local', '.env.production', '.env.production.local'] as const;
+
 const MAX_FILE_BYTES = 1024 * 1024;
 const MAX_SECRETS = 100; // what one deploy can carry (the API's limit)
 
@@ -32,7 +34,9 @@ export function parseEnvFile(text: string): Record<string, string> {
 /** The values in the env files at the root of `dir` and the files they came from. A link is never followed. */
 export function readEnvFiles(dir: string): { values: Record<string, string>; files: string[] } {
   const values: Record<string, string> = {}; const files: string[] = [];
-  for (const f of ENV_FILES) {
+  let names: string[] = [];
+  try { names = fs.readdirSync(dir); } catch { /* no such folder */ }
+  for (const f of orderEnvFiles(names)) {
     try {
       const p = path.join(dir, f); const st = fs.lstatSync(p);
       if (!st.isFile() || st.size > MAX_FILE_BYTES) continue;

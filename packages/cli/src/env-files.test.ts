@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { gunzipSync } from 'node:zlib';
-import { parseEnvFile, readEnvFiles, envForDeploy, ENV_FILES } from './env-files.js';
+import { parseEnvFile, readEnvFiles, envForDeploy, envFileRank } from './env-files.js';
+import { ENV_FILE_VECTORS } from './env-files.generated.js';
 import { packFolder } from './commands/deploy.js';
 
 const CANARY = 'canary-cli-91b7-do-not-leak';
@@ -19,11 +20,14 @@ test('parseEnvFile: comments, export, quotes, escapes, inline comments, multi-li
   assert.deepEqual(parseEnvFile('A=1\r\nB="2"\r\n'), { A: '1', B: '2' });
 });
 
-test('readEnvFiles: the four env files at the root, the later one wins, templates and other files are not read, links are not followed', () => {
-  assert.deepEqual([...ENV_FILES], ['.env', '.env.local', '.env.production', '.env.production.local']);
+test('envFileRank: ranks as the catalogue says (packages/shared/env-files.json in the platform repo: the builder, dashboard and capture tool run the same cases)', () => {
+  for (const [n, rank] of ENV_FILE_VECTORS) assert.strictEqual(envFileRank(n), rank, n);
+});
+
+test('readEnvFiles: every env file at the root is read, the later one wins, templates and other files are not read, links are not followed', () => {
   const d = dir({ '.env': 'A_KEY=base\nB_KEY=base\n', '.env.local': 'A_KEY=local\n', '.env.production': 'A_KEY=prod\n', '.env.production.local': 'B_KEY=prodlocal\n', '.env.example': 'EX_KEY=1', '.env.development': 'DEV_KEY=1', 'sub/.env': 'SUB_KEY=1' });
   const r = readEnvFiles(d);
-  assert.deepEqual(r.values, { A_KEY: 'prod', B_KEY: 'prodlocal' }); assert.deepEqual(r.files, ['.env', '.env.local', '.env.production', '.env.production.local']);
+  assert.deepEqual(r.values, { A_KEY: 'prod', B_KEY: 'prodlocal', DEV_KEY: '1' }); assert.deepEqual(r.files, ['.env.development', '.env', '.env.local', '.env.production', '.env.production.local']);
   const l = dir({ 'real.txt': 'LINKED=1' }); symlinkSync(join(l, 'real.txt'), join(l, '.env'));
   assert.deepEqual(readEnvFiles(l).values, {});
 });

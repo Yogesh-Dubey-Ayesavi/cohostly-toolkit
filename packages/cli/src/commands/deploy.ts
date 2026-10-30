@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import * as readline from 'node:readline/promises';
 import { takeSetFlags, printSettings } from './manifest.js';
 import { staleTypesMessage } from './types.js';
-import { envForDeploy, ENV_FILES } from '../env-files.js';
+import { envForDeploy, envFileRank } from '../env-files.js';
 import { DeployProgress } from '../deploy-progress.js';
 
 const MAX_UPLOAD = 50 * 1024 * 1024; // the API's upload limit
@@ -17,7 +17,7 @@ export function packFolder(dir: string, o: { skipEnvLike?: boolean } = {}): Buff
   const file = path.join(tmp, 'source.tar.gz');
   try {
     // The env files at the root are left out by naming what goes in (a tar exclude pattern would also match a .env in a subfolder, and differs between bsd and GNU tar).
-    const entries = fs.readdirSync(dir).filter((n) => !(ENV_FILES as readonly string[]).includes(n) && !(o.skipEnvLike && (n === '.env' || n.startsWith('.env.')))).sort();
+    const entries = fs.readdirSync(dir).filter((n) => envFileRank(n) === null && !(o.skipEnvLike && (n === '.env' || n.startsWith('.env.')))).sort();
     if (!entries.length) throw new Error('there is nothing to deploy here except .env files, and those are never uploaded');
     execFileSync('tar', ['-czf', file, '--exclude=node_modules', '--exclude=.git', '--exclude=.vercel', '--exclude=.next', '--exclude=__pycache__', '--exclude=.DS_Store', '--exclude=._*', '-C', dir, ...entries], { stdio: 'pipe', env: { ...process.env, COPYFILE_DISABLE: '1' } });
     return fs.readFileSync(file);
